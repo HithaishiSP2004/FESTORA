@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF8F5;
+    color: #222725;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-display {
+    font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Custom editorial scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F4EFE6;
+}
+::-webkit-scrollbar-thumb {
+  background: #C5A059;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8C6D34;
+}
+
+/* Gold foil accent sheen */
+.gold-sheen {
+  background: linear-gradient(135deg, #FAF8F5 0%, #F6EED9 50%, #FAF8F5 100%);
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #8C6D34 0%, #C5A059 50%, #8C6D34 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
