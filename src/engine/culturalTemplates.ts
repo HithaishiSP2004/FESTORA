@@ -222,3 +222,4 @@ export const GOLDEN_ANNIVERSARY_PRESET: EventPlan = (() => {
     vendorWorksheets: []
   };
 })();
+

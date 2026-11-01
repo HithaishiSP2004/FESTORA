@@ -134,3 +134,4 @@ export interface PlanDiffReport {
   }[];
   strategicAdvice: string;
 }
+

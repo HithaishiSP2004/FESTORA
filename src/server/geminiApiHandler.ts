@@ -1,6 +1,48 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import fs from 'fs';
+import path from 'path';
 import { z } from 'zod';
 import { GoogleGenAI } from '@google/genai';
+
+/**
+ * Model cascade:
+ * Primary: gemini-3.8-flash (Latest state-of-the-art text model)
+ * Fallback 1: gemini-3.5-flash-lite (Massive quota: 15 RPM, 500 RPD)
+ * Fallback 2: gemini-3.1-flash-lite (Massive quota: 15 RPM, 500 RPD)
+ * Fallback 3: gemini-2.5-flash (Standard stable fallback)
+ */
+export const MODEL_CASCADE = [
+  'gemini-3.8-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
+] as const;
+
+/**
+ * Retrieves GEMINI_API_KEY from environment or directly from .env file
+ */
+export function getApiKey(): string | undefined {
+  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your_gemini_api_key_here') {
+    return process.env.GEMINI_API_KEY;
+  }
+  try {
+    const envPath = path.resolve(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      const match = content.match(/GEMINI_API_KEY=([^\r\n]+)/);
+      if (match && match[1]) {
+        const key = match[1].trim();
+        if (key && key !== 'your_gemini_api_key_here') {
+          process.env.GEMINI_API_KEY = key;
+          return key;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading .env directly:', e);
+  }
+  return undefined;
+}
 
 // Rate Limiting helper: max 30 requests per minute
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -101,7 +143,42 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
 }
 
 /**
- * Fallback concept generator when API key is missing or service unavailable
+ * Executes content generation across the model cascade.
+ * Automatically tries fallback models if rate limits (429) or errors occur.
+ */
+async function generateWithCascade(
+  ai: GoogleGenAI,
+  prompt: string
+): Promise<{ text: string; modelUsed: string }> {
+  let lastError: any = null;
+
+  for (const model of MODEL_CASCADE) {
+    try {
+      console.log(`[Gemini Cascade] Attempting call with model: ${model}`);
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+        }
+      });
+
+      const text = response.text || '';
+      if (text.trim()) {
+        console.log(`[Gemini Cascade] Succeeded with model: ${model}`);
+        return { text, modelUsed: model };
+      }
+    } catch (err: any) {
+      console.warn(`[Gemini Cascade] Model ${model} failed (Rate limit/Error: ${err?.message}). Cascading to next fallback...`);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('All cascade models failed');
+}
+
+/**
+ * Fallback concept generator when API key is missing or all remote models exhausted
  */
 function getFallbackConcept(body: z.infer<typeof GenerateConceptRequestSchema>) {
   const occasion = body.occasion.toLowerCase();
@@ -202,11 +279,11 @@ export async function handleAiGenerate(req: IncomingMessage, res: ServerResponse
       return;
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
       // Deterministic cultural fallback mode (zero downtime guarantee)
       const fallback = getFallbackConcept(parsed.data);
-      sendJson(res, 200, { concept: fallback, source: 'fallback_template' });
+      sendJson(res, 200, { concept: fallback, source: 'fallback_template', modelUsed: 'offline_cultural_template' });
       return;
     }
 
@@ -241,22 +318,13 @@ Respond ONLY with a JSON object matching this schema:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
+    const { text, modelUsed } = await generateWithCascade(ai, prompt);
     const cleanJson = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
     const validated = ConceptOutputSchema.parse(cleanJson);
 
-    sendJson(res, 200, { concept: validated, source: 'gemini' });
+    sendJson(res, 200, { concept: validated, source: 'gemini', modelUsed });
   } catch (error: any) {
-    console.error('Gemini generate error, engaging fallback:', error);
-    // Graceful fallback prevents UX breakdown
+    console.error('Gemini generate error, engaging cultural template fallback:', error);
     const fallback = getFallbackConcept({
       occasion: 'wedding',
       city: 'India',
@@ -264,7 +332,7 @@ Respond ONLY with a JSON object matching this schema:
       guestCount: 200,
       priorities: {},
     });
-    sendJson(res, 200, { concept: fallback, source: 'error_fallback', warning: error?.message });
+    sendJson(res, 200, { concept: fallback, source: 'error_fallback', warning: error?.message, modelUsed: 'offline_cultural_template' });
   }
 }
 
@@ -291,10 +359,10 @@ export async function handleAiAdapt(req: IncomingMessage, res: ServerResponse) {
     const guestDiff = proposed.newGuestCount - prev.guestCount;
     const budgetDiff = proposed.newBudget - prev.totalBudget;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getApiKey();
     if (!apiKey) {
       const fallback = getFallbackAdaptation(parsed.data, guestDiff, budgetDiff);
-      sendJson(res, 200, { adaptation: fallback, source: 'fallback_template' });
+      sendJson(res, 200, { adaptation: fallback, source: 'fallback_template', modelUsed: 'offline_cultural_template' });
       return;
     }
 
@@ -331,19 +399,11 @@ Respond ONLY with a JSON object matching this schema:
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const text = response.text || '';
+    const { text, modelUsed } = await generateWithCascade(ai, prompt);
     const cleanJson = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
     const validated = AdaptOutputSchema.parse(cleanJson);
 
-    sendJson(res, 200, { adaptation: validated, source: 'gemini' });
+    sendJson(res, 200, { adaptation: validated, source: 'gemini', modelUsed });
   } catch (error: any) {
     console.error('Gemini adapt error, engaging fallback:', error);
     const fallback = getFallbackAdaptation({
@@ -362,6 +422,6 @@ Respond ONLY with a JSON object matching this schema:
         newGuestCount: 250,
       }
     }, 50, -100000);
-    sendJson(res, 200, { adaptation: fallback, source: 'error_fallback', warning: error?.message });
+    sendJson(res, 200, { adaptation: fallback, source: 'error_fallback', warning: error?.message, modelUsed: 'offline_cultural_template' });
   }
 }

@@ -116,3 +116,4 @@ export class ChangeDiffEngine {
     return `Plan recalculated successfully. All category totals reconcile exactly with your target budget.`;
   }
 }
+

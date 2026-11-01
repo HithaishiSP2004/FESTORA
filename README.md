@@ -146,3 +146,4 @@ All 9 mandatory test scenarios are implemented in `src/tests/festora.test.ts` an
    pnpm run build
    ```
    Output bundle size: **< 350 kB** (extremely lightweight, far under the 10 MB limit).
+

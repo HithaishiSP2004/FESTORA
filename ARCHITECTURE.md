@@ -116,3 +116,4 @@ Every modification produces an immutable `EventSnapshot`:
   - 9 mandatory automated test suites (budget reconciliation, guest scaling, priority protection, rollback, fallbacks)
   - Accessibility audit (ARIA, keyboard navigation, contrast compliance)
   - Vercel configuration (`vercel.json`) and clean Git documentation
+
