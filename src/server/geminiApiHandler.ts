@@ -60,6 +60,36 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+/**
+ * Resolves allowed CORS origin for same-origin Vercel deployment,
+ * preview environments, and local development.
+ */
+export function getAllowedOrigin(req: IncomingMessage): string {
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+
+  if (!origin) {
+    return host ? `https://${host}` : '*';
+  }
+
+  try {
+    const parsed = new URL(origin);
+    const hostname = parsed.hostname;
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname.endsWith('.vercel.app') ||
+      (host && (origin === `https://${host}` || origin === `http://${host}`))
+    ) {
+      return origin;
+    }
+  } catch {
+    // Malformed origin URL
+  }
+
+  return host ? `https://${host}` : 'null';
+}
+
 // Request validation schemas
 export const GenerateConceptRequestSchema = z.object({
   occasion: z.string().min(1),
@@ -184,8 +214,18 @@ function parseJsonBody(req: IncomingMessage): Promise<unknown> {
   });
 }
 
-function sendJson(res: ServerResponse, statusCode: number, data: unknown) {
+function sendJson(res: ServerResponse, statusCode: number, data: unknown, req?: IncomingMessage) {
+  const allowedOrigin = req ? getAllowedOrigin(req) : '*';
   const serverlessRes = res as ServerlessResponse;
+
+  if (typeof res.setHeader === 'function') {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Vary', 'Origin');
+  }
+
   // Support both Vercel Serverless response helper and standard Node.js ServerResponse
   if (typeof serverlessRes.status === 'function') {
     const chain = serverlessRes.status(statusCode);
@@ -197,9 +237,10 @@ function sendJson(res: ServerResponse, statusCode: number, data: unknown) {
 
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
   });
   res.end(JSON.stringify(data));
 }
@@ -336,13 +377,13 @@ function getFallbackAdaptation(
  */
 export async function handleAiGenerate(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Method Not Allowed. Use POST.' });
+    sendJson(res, 405, { error: 'Method Not Allowed. Use POST.' }, req);
     return;
   }
 
   const ip = getClientIp(req);
   if (!checkRateLimit(ip)) {
-    sendJson(res, 429, { error: 'Rate limit exceeded. Please wait a minute.' });
+    sendJson(res, 429, { error: 'Rate limit exceeded. Please wait a minute.' }, req);
     return;
   }
 
@@ -350,7 +391,7 @@ export async function handleAiGenerate(req: IncomingMessage, res: ServerResponse
     const rawBody = await parseJsonBody(req);
     const parsed = GenerateConceptRequestSchema.safeParse(rawBody);
     if (!parsed.success) {
-      sendJson(res, 400, { error: 'Invalid request body', details: parsed.error.issues });
+      sendJson(res, 400, { error: 'Invalid request body', details: parsed.error.issues }, req);
       return;
     }
 
@@ -358,7 +399,7 @@ export async function handleAiGenerate(req: IncomingMessage, res: ServerResponse
     if (!apiKey) {
       // Deterministic cultural fallback mode (zero downtime guarantee)
       const fallback = getFallbackConcept(parsed.data);
-      sendJson(res, 200, { concept: fallback, source: 'fallback_template', modelUsed: 'offline_cultural_template' });
+      sendJson(res, 200, { concept: fallback, source: 'fallback_template', modelUsed: 'offline_cultural_template' }, req);
       return;
     }
 
@@ -397,7 +438,7 @@ Respond ONLY with a JSON object matching this schema:
     const cleanJson = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
     const validated = ConceptOutputSchema.parse(cleanJson);
 
-    sendJson(res, 200, { concept: validated, source: 'gemini', modelUsed });
+    sendJson(res, 200, { concept: validated, source: 'gemini', modelUsed }, req);
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown generation error';
     console.error('Gemini generate error, engaging cultural template fallback:', errorMsg);
@@ -414,7 +455,7 @@ Respond ONLY with a JSON object matching this schema:
       source: 'error_fallback',
       warning: 'AI generation temporarily unavailable; resilient cultural template engaged.',
       modelUsed: 'offline_cultural_template'
-    });
+    }, req);
   }
 }
 
@@ -423,13 +464,13 @@ Respond ONLY with a JSON object matching this schema:
  */
 export async function handleAiAdapt(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'POST') {
-    sendJson(res, 405, { error: 'Method Not Allowed. Use POST.' });
+    sendJson(res, 405, { error: 'Method Not Allowed. Use POST.' }, req);
     return;
   }
 
   const ip = getClientIp(req);
   if (!checkRateLimit(ip)) {
-    sendJson(res, 429, { error: 'Rate limit exceeded. Please wait a minute.' });
+    sendJson(res, 429, { error: 'Rate limit exceeded. Please wait a minute.' }, req);
     return;
   }
 
@@ -437,7 +478,7 @@ export async function handleAiAdapt(req: IncomingMessage, res: ServerResponse) {
     const rawBody = await parseJsonBody(req);
     const parsed = AdaptPlanRequestSchema.safeParse(rawBody);
     if (!parsed.success) {
-      sendJson(res, 400, { error: 'Invalid request body', details: parsed.error.issues });
+      sendJson(res, 400, { error: 'Invalid request body', details: parsed.error.issues }, req);
       return;
     }
 
@@ -449,7 +490,7 @@ export async function handleAiAdapt(req: IncomingMessage, res: ServerResponse) {
     const apiKey = getApiKey();
     if (!apiKey) {
       const fallback = getFallbackAdaptation(parsed.data, guestDiff, budgetDiff);
-      sendJson(res, 200, { adaptation: fallback, source: 'fallback_template', modelUsed: 'offline_cultural_template' });
+      sendJson(res, 200, { adaptation: fallback, source: 'fallback_template', modelUsed: 'offline_cultural_template' }, req);
       return;
     }
 
@@ -490,7 +531,7 @@ Respond ONLY with a JSON object matching this schema:
     const cleanJson = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
     const validated = AdaptOutputSchema.parse(cleanJson);
 
-    sendJson(res, 200, { adaptation: validated, source: 'gemini', modelUsed });
+    sendJson(res, 200, { adaptation: validated, source: 'gemini', modelUsed }, req);
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown adaptation error';
     console.error('Gemini adapt error, engaging fallback:', errorMsg);
@@ -516,6 +557,6 @@ Respond ONLY with a JSON object matching this schema:
       source: 'error_fallback',
       warning: 'AI adaptation temporarily unavailable; resilient trade-off fallback engaged.',
       modelUsed: 'offline_cultural_template'
-    });
+    }, req);
   }
 }
