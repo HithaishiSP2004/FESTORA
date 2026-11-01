@@ -274,9 +274,9 @@ export class BudgetEngine {
           description: `Total locked allocations exceed budget by ₹${Math.abs(remainingForFlexible).toLocaleString('en-IN')}. Consider unlocking Venue or Catering.`,
           suggestedSavings: 0
         });
-        // Minimize flexible categories to floor
+        // Clamp flexible categories to 0 since locked categories already consumed all funds
         flexibleCategories.forEach(cat => {
-          cat.allocatedAmount = 5000;
+          cat.allocatedAmount = 0;
         });
       }
     }
@@ -287,23 +287,44 @@ export class BudgetEngine {
   }
 
   /**
-   * Adjusts the largest flexible category to ensure sum(amounts) === totalBudget to the exact single rupee.
+   * Adjusts flexible categories to ensure sum(amounts) === totalBudget without ever producing negative values.
    */
   public static reconcileTotal(categories: BudgetCategory[], targetBudget: number): BudgetCategory[] {
     const sum = categories.reduce((acc, cat) => acc + cat.allocatedAmount, 0);
     const diff = targetBudget - sum;
 
     if (diff !== 0) {
-      // Find a flexible non-buffer category to absorb the rounding delta
-      const recipient = categories.find(c => !c.isLocked && c.category !== 'buffer') || categories[0];
-      if (recipient) {
-        recipient.allocatedAmount += diff;
+      const flexible = categories.filter(c => !c.isLocked && c.category !== 'buffer');
+      if (flexible.length > 0) {
+        if (diff > 0) {
+          // Add rounding surplus to largest flexible category
+          const recipient = flexible.reduce((max, c) => c.allocatedAmount > max.allocatedAmount ? c : max, flexible[0]);
+          recipient.allocatedAmount += diff;
+        } else {
+          // Deficit: safely absorb reduction without allowing negative allocations
+          let remainingReduction = Math.abs(diff);
+          for (const cat of flexible) {
+            const deduction = Math.min(cat.allocatedAmount, remainingReduction);
+            cat.allocatedAmount -= deduction;
+            remainingReduction -= deduction;
+            if (remainingReduction <= 0) break;
+          }
+        }
+      } else {
+        // All categories are locked: adjust the largest locked category safely
+        const recipient = categories[0];
+        if (recipient) {
+          recipient.allocatedAmount = Math.max(0, recipient.allocatedAmount + diff);
+        }
       }
     }
 
-    // Recompute percentage of total
+    // Recompute percentage of total (guaranteed non-negative)
     categories.forEach(cat => {
-      cat.percentageOfTotal = +(cat.allocatedAmount / targetBudget * 100).toFixed(1);
+      cat.allocatedAmount = Math.max(0, cat.allocatedAmount);
+      cat.percentageOfTotal = targetBudget > 0 
+        ? +(cat.allocatedAmount / targetBudget * 100).toFixed(1)
+        : 0;
     });
 
     return categories;

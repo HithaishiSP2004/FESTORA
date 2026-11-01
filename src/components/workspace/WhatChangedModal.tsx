@@ -38,6 +38,15 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
   const [previewPlan, setPreviewPlan] = useState<EventPlan | null>(null);
   const [diffReport, setDiffReport] = useState<PlanDiffReport | null>(null);
 
+  // Keyboard accessibility: Escape key listener
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   // Quick Simulation presets for Hackathon judges
   const applyPreset = (guestsDelta: number, budgetDelta: number, desc: string) => {
     setNewGuests(currentPlan.guestCount + guestsDelta);
@@ -123,7 +132,12 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6">
+    <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="what-changed-modal-title"
+      className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+    >
       
       <div className="bg-ivory-50 rounded-3xl max-w-4xl w-full border border-ivory-300 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         
@@ -136,7 +150,7 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
               </span>
               <span className="text-xs text-gold-300 font-semibold">Core Differentiator</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-ivory-50 mt-1">
+            <h2 id="what-changed-modal-title" className="text-2xl sm:text-3xl font-serif font-bold text-ivory-50 mt-1">
               "What Changed?" Decision Engine
             </h2>
             <p className="text-xs sm:text-sm text-ivory-300 mt-1">
@@ -146,7 +160,8 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ivory-400 hover:text-white hover:bg-forest-900 transition-colors"
+            aria-label="Close What Changed decision modal"
+            className="p-2 rounded-xl text-ivory-400 hover:text-white hover:bg-forest-900 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400"
           >
             <X className="w-5 h-5" />
           </button>

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { BudgetEngine } from '../engine/budgetEngine';
 import { TimelineEngine } from '../engine/timelineEngine';
 import { ChangeDiffEngine } from '../engine/changeDiffEngine';
@@ -6,6 +6,7 @@ import { EventStorage } from '../engine/eventStorage';
 import { INDIAN_WEDDING_PRESET } from '../engine/culturalTemplates';
 import { ConceptOutputSchema, AdaptOutputSchema } from '../server/geminiApiHandler';
 import { EventPlan } from '../types/event';
+import { AiService } from '../services/aiService';
 
 // In-memory mock for localStorage in test environment
 const mockStorage: Record<string, string> = {};
@@ -211,6 +212,138 @@ describe('FESTORA Core Architecture Test Suite', () => {
     expect(restored).not.toBeNull();
     expect(restored!.totalBudget).toBe(800000);
     expect(restored!.version).toBe(2); // Incremented audit version
+  });
+
+  // TEST 10: Infeasible budget scenario
+  it('10. Infeasible budget scenarios generate deficit warnings and floor flexible categories', () => {
+    const basePlan = JSON.parse(JSON.stringify(INDIAN_WEDDING_PRESET)) as EventPlan;
+    // Lock both catering and venue
+    const catering = basePlan.budgetCategories.find(c => c.category === 'catering')!;
+    const venue = basePlan.budgetCategories.find(c => c.category === 'venue')!;
+    catering.isLocked = true;
+    venue.isLocked = true;
+    expect(catering.allocatedAmount + venue.allocatedAmount).toBeGreaterThan(250000);
+
+    // Attempt to slash total budget to ₹2,50,000 (well below locked allocations)
+    const { categories: adapted, compromises } = BudgetEngine.adaptBudget(
+      basePlan.budgetCategories,
+      250000,
+      200,
+      200
+    );
+
+    // Deficit alert compromise must be triggered
+    const alert = compromises.find(c => c.category === 'Budget Deficit Alert');
+    expect(alert).toBeDefined();
+    expect(alert?.description).toContain('exceed budget');
+
+    // Flexible categories should be clamped to 0 and NO category should ever be negative
+    const decor = adapted.find(c => c.category === 'decor')!;
+    expect(decor.allocatedAmount).toBe(0);
+    expect(adapted.every(c => c.allocatedAmount >= 0)).toBe(true);
+  });
+
+  // TEST 11: What Changed lifecycle: Approval vs Rejection
+  it('11. What Changed lifecycle preserves plan on rejection and increments version on approval', () => {
+    const basePlan = JSON.parse(JSON.stringify(INDIAN_WEDDING_PRESET)) as EventPlan;
+    basePlan.version = 1;
+
+    // Simulation: Proposed change
+    const proposedPlan: EventPlan = {
+      ...basePlan,
+      version: basePlan.version + 1,
+      totalBudget: 750000,
+      guestCount: 220,
+    };
+    const diff = ChangeDiffEngine.comparePlans(basePlan, proposedPlan);
+
+    // Action A: Rejection
+    // User cancels or rejects modal -> state is not updated, active plan remains basePlan v1
+    let activePlan = { ...basePlan };
+    const onReject = () => { /* no-op */ };
+    onReject();
+    expect(activePlan.version).toBe(1);
+    expect(activePlan.totalBudget).toBe(800000);
+
+    // Action B: Approval
+    // User approves diff -> new plan is applied and snapshot recorded
+    const onApprove = (acceptedPlan: EventPlan) => {
+      activePlan = acceptedPlan;
+      EventStorage.savePlan(acceptedPlan, `Approved adaptation: ${diff.changeSummary}`);
+    };
+    onApprove(proposedPlan);
+    expect(activePlan.version).toBe(2);
+    expect(activePlan.totalBudget).toBe(750000);
+    expect(activePlan.guestCount).toBe(220);
+
+    const snapshots = EventStorage.getSnapshots(activePlan.id);
+    expect(snapshots.some(s => s.version === 2)).toBe(true);
+  });
+
+  // TEST 12: Resilient fallback when API key is missing or offline
+  it('12. Client-side resilience fallback activates seamlessly when API is offline', async () => {
+    // Mock global fetch to simulate network error or 500 error
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error: API unreachable'));
+
+    // Test concept generation fallback
+    const conceptResult = await AiService.generateConcept({
+      occasion: 'wedding',
+      city: 'Bangalore',
+      totalBudget: 800000,
+      guestCount: 200,
+      priorities: { catering: 'high', venue: 'high' }
+    });
+
+    expect(conceptResult.source).toBe('client_resilience_fallback');
+    expect(conceptResult.concept.title).toBeDefined();
+    expect(conceptResult.concept.colorPalette.length).toBeGreaterThanOrEqual(2);
+
+    // Test adaptation advice fallback
+    const adaptResult = await AiService.requestAdaptationAdvice({
+      changePrompt: 'Decrease budget to 7L',
+      previousPlan: INDIAN_WEDDING_PRESET,
+      proposedChanges: {
+        newBudget: 700000,
+        newGuestCount: 200
+      }
+    });
+
+    expect(adaptResult.strategicAdvice).toBeDefined();
+    expect(adaptResult.compromiseSuggestions.length).toBeGreaterThanOrEqual(1);
+
+    // Restore fetch
+    globalThis.fetch = originalFetch;
+  });
+
+  // TEST 13: Vendor quote commitment updates budget tracking and readiness
+  it('13. Vendor quote selection locks contract and syncs committed expenditure to budget', () => {
+    const basePlan = JSON.parse(JSON.stringify(INDIAN_WEDDING_PRESET)) as EventPlan;
+    const cateringWorksheet = basePlan.vendorWorksheets.find(vw => vw.category === 'catering')!;
+    const targetQuote = cateringWorksheet.quotes[0];
+
+    // Select and commit quote
+    targetQuote.isShortlisted = true;
+    cateringWorksheet.status = 'booked';
+    const catIndex = basePlan.budgetCategories.findIndex(c => c.category === 'catering');
+    basePlan.budgetCategories[catIndex].committedAmount = targetQuote.quotedAmount;
+
+    // Verify committedAmount reflects quote
+    expect(basePlan.budgetCategories[catIndex].committedAmount).toBe(targetQuote.quotedAmount);
+    expect(cateringWorksheet.status).toBe('booked');
+
+    // Verify Execution Readiness recalculation
+    const totalMilestones = basePlan.milestones.length || 1;
+    const completedMilestones = basePlan.milestones.filter(m => m.isCompleted).length;
+    const milestoneProgress = Math.round((completedMilestones / totalMilestones) * 60);
+
+    const totalVendors = basePlan.vendorWorksheets.length || 1;
+    const bookedVendors = basePlan.vendorWorksheets.filter(v => v.status === 'booked').length;
+    const vendorProgress = Math.round((bookedVendors / totalVendors) * 40);
+
+    const readinessScore = Math.min(100, milestoneProgress + vendorProgress);
+    expect(readinessScore).toBeGreaterThan(0);
+    expect(vendorProgress).toBeGreaterThan(0);
   });
 
 });

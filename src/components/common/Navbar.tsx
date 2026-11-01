@@ -87,6 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onResetDemo}
             title="Reset to flagship demonstration baseline"
+            aria-label="Reset to flagship demonstration baseline"
             className="p-2 text-charcoal-400 hover:text-forest-800 hover:bg-ivory-200 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
           >
             <RotateCcw className="w-4 h-4" />

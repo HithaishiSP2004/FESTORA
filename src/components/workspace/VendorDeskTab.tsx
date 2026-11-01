@@ -40,6 +40,16 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
   const [newPros, setNewPros] = useState('');
   const [newCons, setNewCons] = useState('');
 
+  // Keyboard accessibility: Escape key listener for Add Quote modal
+  React.useEffect(() => {
+    if (!isAddQuoteModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsAddQuoteModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAddQuoteModalOpen]);
+
   const currentWorksheet = plan.vendorWorksheets.find(v => v.id === activeCategory) || plan.vendorWorksheets[0];
 
   const handleSelectQuote = (quote: VendorQuote) => {
@@ -288,7 +298,8 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                             <button
                               onClick={() => handleDeleteQuote(quote.id)}
                               title="Delete quotation"
-                              className="p-1 text-charcoal-400 hover:text-red-600 rounded-lg transition-colors"
+                              aria-label={`Delete quote from ${quote.vendorName}`}
+                              className="p-1.5 text-charcoal-400 hover:text-red-600 rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-red-400"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -378,7 +389,12 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
 
       {/* Add Vendor Quotation Modal */}
       {isAddQuoteModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div 
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-quote-modal-title"
+          className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+        >
           <div className="bg-ivory-50 rounded-3xl max-w-lg w-full border border-ivory-300 shadow-2xl overflow-hidden">
             
             <div className="p-6 bg-forest-950 text-ivory-100 flex items-center justify-between border-b border-forest-800">
@@ -386,13 +402,14 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                 <span className="text-[10px] uppercase font-bold tracking-widest text-gold-400">
                   New Vendor Quotation
                 </span>
-                <h3 className="font-serif font-bold text-xl text-ivory-50">
+                <h3 id="add-quote-modal-title" className="font-serif font-bold text-xl text-ivory-50">
                   {currentWorksheet?.title}
                 </h3>
               </div>
               <button
                 onClick={() => setIsAddQuoteModalOpen(false)}
-                className="p-1.5 text-ivory-400 hover:text-white rounded-lg"
+                aria-label="Close add quotation modal"
+                className="p-1.5 text-ivory-400 hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-400"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -400,10 +417,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
 
             <form onSubmit={handleAddQuote} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                <label htmlFor="vendor-name-input" className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
                   Vendor / Business Name *
                 </label>
                 <input
+                  id="vendor-name-input"
                   type="text"
                   required
                   value={newVendorName}
@@ -414,10 +432,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                <label htmlFor="quoted-amount-input" className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
                   Total Quoted Price (₹) *
                 </label>
                 <input
+                  id="quoted-amount-input"
                   type="number"
                   required
                   min="1"
@@ -429,10 +448,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                <label htmlFor="package-details-input" className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
                   Package Inclusions & Deliverables
                 </label>
                 <textarea
+                  id="package-details-input"
                   rows={2}
                   value={newPackageDetails}
                   onChange={(e) => setNewPackageDetails(e.target.value)}
@@ -442,10 +462,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                <label htmlFor="pros-input" className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
                   Key Strengths / Pros (comma-separated)
                 </label>
                 <input
+                  id="pros-input"
                   type="text"
                   value={newPros}
                   onChange={(e) => setNewPros(e.target.value)}
@@ -455,10 +476,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
               </div>
 
               <div>
-                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                <label htmlFor="cons-input" className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
                   Trade-offs / Cons (comma-separated)
                 </label>
                 <input
+                  id="cons-input"
                   type="text"
                   value={newCons}
                   onChange={(e) => setNewCons(e.target.value)}

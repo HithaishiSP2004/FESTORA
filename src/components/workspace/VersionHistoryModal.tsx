@@ -21,6 +21,15 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
 
   const snapshots: EventSnapshot[] = EventStorage.getSnapshots(plan.id);
 
+  // Keyboard accessibility: Escape key listener
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleRollback = (snapshotId: string) => {
     if (window.confirm('Restore plan to this version? All subsequent changes will be safely superseded.')) {
       const restored = EventStorage.rollbackToSnapshot(plan.id, snapshotId);
@@ -32,7 +41,12 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div 
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="version-history-title"
+      className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-md flex items-center justify-center p-4"
+    >
       <div className="bg-ivory-50 rounded-3xl max-w-2xl w-full border border-ivory-300 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         
         {/* Header */}
@@ -42,14 +56,15 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
               <History className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif font-bold text-xl text-ivory-50">Version Snapshot History</h3>
+              <h3 id="version-history-title" className="font-serif font-bold text-xl text-ivory-50">Version Snapshot History</h3>
               <p className="text-xs text-ivory-300">Auditable trace of every plan adaptation</p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-ivory-400 hover:text-white hover:bg-forest-900 transition-colors"
+            aria-label="Close Version History modal"
+            className="p-1.5 rounded-lg text-ivory-400 hover:text-white hover:bg-forest-900 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-400"
           >
             <X className="w-5 h-5" />
           </button>
