@@ -6,16 +6,16 @@ import { GoogleGenAI } from '@google/genai';
 
 /**
  * Model cascade:
- * Primary: gemini-3.8-flash (Latest state-of-the-art text model)
- * Fallback 1: gemini-3.5-flash-lite (Massive quota: 15 RPM, 500 RPD)
- * Fallback 2: gemini-3.1-flash-lite (Massive quota: 15 RPM, 500 RPD)
- * Fallback 3: gemini-2.5-flash (Standard stable fallback)
+ * 1. gemini-3.5-flash-lite: High capacity (15 RPM, 500 RPD, 1.3s latency)
+ * 2. gemini-3.1-flash-lite: High capacity (15 RPM, 500 RPD, 1.5s latency)
+ * 3. gemini-2.5-flash: Stable standard fallback (1.6s latency)
+ * 4. gemini-3.8-flash: Latest Flash model
  */
 export const MODEL_CASCADE = [
-  'gemini-3.8-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash',
+  'gemini-3.8-flash',
 ] as const;
 
 /**
@@ -144,18 +144,20 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
 
 /**
  * Executes content generation across the model cascade.
- * Automatically tries fallback models if rate limits (429) or errors occur.
+ * Automatically tries fallback models if rate limits (429), timeouts or errors occur.
  */
 async function generateWithCascade(
   ai: GoogleGenAI,
-  prompt: string
+  prompt: string,
+  timeoutMs: number = 6000
 ): Promise<{ text: string; modelUsed: string }> {
   let lastError: any = null;
 
   for (const model of MODEL_CASCADE) {
     try {
       console.log(`[Gemini Cascade] Attempting call with model: ${model}`);
-      const response = await ai.models.generateContent({
+      
+      const callPromise = ai.models.generateContent({
         model,
         contents: prompt,
         config: {
@@ -163,13 +165,18 @@ async function generateWithCascade(
         }
       });
 
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms on model ${model}`)), timeoutMs)
+      );
+
+      const response = await Promise.race([callPromise, timeoutPromise]);
       const text = response.text || '';
-      if (text.trim()) {
+      if (text && text.trim()) {
         console.log(`[Gemini Cascade] Succeeded with model: ${model}`);
         return { text, modelUsed: model };
       }
     } catch (err: any) {
-      console.warn(`[Gemini Cascade] Model ${model} failed (Rate limit/Error: ${err?.message}). Cascading to next fallback...`);
+      console.warn(`[Gemini Cascade] Model ${model} failed (${err?.message}). Cascading to next fallback...`);
       lastError = err;
     }
   }
