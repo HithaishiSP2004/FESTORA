@@ -10,9 +10,13 @@ import {
   Building,
   Utensils,
   Camera,
-  Sparkles
+  Sparkles,
+  PlusCircle,
+  Trash2,
+  X
 } from 'lucide-react';
 import { EventPlan, VendorWorksheet, VendorQuote } from '../../types/event';
+import { Rupee } from '../common/Rupee';
 
 interface VendorDeskTabProps {
   plan: EventPlan;
@@ -28,6 +32,13 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
   const [activeCategory, setActiveCategory] = useState<string>(
     plan.vendorWorksheets[0]?.id || ''
   );
+
+  const [isAddQuoteModalOpen, setIsAddQuoteModalOpen] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
+  const [newQuotedAmount, setNewQuotedAmount] = useState<number | ''>('');
+  const [newPackageDetails, setNewPackageDetails] = useState('');
+  const [newPros, setNewPros] = useState('');
+  const [newCons, setNewCons] = useState('');
 
   const currentWorksheet = plan.vendorWorksheets.find(v => v.id === activeCategory) || plan.vendorWorksheets[0];
 
@@ -57,6 +68,61 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
     }
   };
 
+  const handleDeleteQuote = (quoteId: string) => {
+    if (!currentWorksheet) return;
+
+    const updatedWorksheets = plan.vendorWorksheets.map(vw => {
+      if (vw.id === currentWorksheet.id) {
+        const remainingQuotes = vw.quotes.filter(q => q.id !== quoteId);
+        const hasBooked = remainingQuotes.some(q => q.isShortlisted);
+        return {
+          ...vw,
+          status: hasBooked ? ('booked' as const) : ('reviewing' as const),
+          quotes: remainingQuotes
+        };
+      }
+      return vw;
+    });
+
+    onUpdateVendorWorksheets(updatedWorksheets);
+  };
+
+  const handleAddQuote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentWorksheet || !newVendorName.trim() || !newQuotedAmount) return;
+
+    const newQuote: VendorQuote = {
+      id: `q-${Date.now()}`,
+      vendorName: newVendorName.trim(),
+      quotedAmount: Number(newQuotedAmount),
+      packageDetails: newPackageDetails.trim() || 'Custom vendor proposal package',
+      pros: newPros.split(',').map(s => s.trim()).filter(Boolean),
+      cons: newCons.split(',').map(s => s.trim()).filter(Boolean),
+      isShortlisted: false
+    };
+
+    const updatedWorksheets = plan.vendorWorksheets.map(vw => {
+      if (vw.id === currentWorksheet.id) {
+        return {
+          ...vw,
+          status: vw.status === 'booked' ? vw.status : ('reviewing' as const),
+          quotes: [...vw.quotes, newQuote]
+        };
+      }
+      return vw;
+    });
+
+    onUpdateVendorWorksheets(updatedWorksheets);
+
+    // Reset form
+    setNewVendorName('');
+    setNewQuotedAmount('');
+    setNewPackageDetails('');
+    setNewPros('');
+    setNewCons('');
+    setIsAddQuoteModalOpen(false);
+  };
+
   const getWorksheetIcon = (cat: string) => {
     switch (cat) {
       case 'catering': return <Utensils className="w-3.5 h-3.5" />;
@@ -65,6 +131,8 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
       default: return <Building className="w-3.5 h-3.5" />;
     }
   };
+
+  const formattedCity = plan.city ? plan.city.charAt(0).toUpperCase() + plan.city.slice(1) : 'your city';
 
   return (
     <div className="space-y-8">
@@ -81,11 +149,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
           Review customized briefs, cultural screening checklists, and side-by-side vendor quotes before signing contracts.
         </p>
 
-        {/* Notice on provenance */}
-        <div className="mt-4 p-3 bg-white rounded-xl border border-ivory-200 text-xs text-charcoal-600 flex items-start space-x-2">
+        {/* Notice on provenance — Explicitly transparent as required by Plan Item 4 */}
+        <div className="mt-4 p-3.5 bg-white rounded-xl border border-ivory-200 text-xs text-charcoal-700 flex items-start space-x-2.5 shadow-sm">
           <Info className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
-          <span>
-            Quotes shown are realistic market estimates for {plan.city}. Selecting a quote commits that amount to your active budget tracker.
+          <span className="leading-relaxed">
+            <strong>Planning estimates</strong> are system-generated starting points, not verified vendor quotations. Add actual vendor quotes to compare offers and track commitments.
           </span>
         </div>
 
@@ -95,7 +163,7 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
             <button
               key={vw.id}
               onClick={() => setActiveCategory(vw.id)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 focus:outline-none focus:ring-1 focus:ring-gold-400 ${
                 currentWorksheet?.id === vw.id
                   ? 'bg-forest-900 text-ivory-100 shadow-sm'
                   : 'bg-white border border-ivory-300 text-charcoal-700 hover:border-gold-400'
@@ -104,7 +172,11 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
               {getWorksheetIcon(vw.category)}
               <span>{vw.title}</span>
               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                vw.status === 'booked' ? 'bg-emerald-200 text-emerald-900' : 'bg-gold-100 text-gold-900'
+                vw.status === 'booked' 
+                  ? 'bg-emerald-200 text-emerald-900' 
+                  : vw.status === 'shortlisted'
+                  ? 'bg-blue-100 text-blue-900'
+                  : 'bg-gold-100 text-gold-900'
               }`}>
                 {vw.status}
               </span>
@@ -126,14 +198,15 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   <span>Key Specifications</span>
                 </span>
-                <span className="text-xs font-serif font-bold text-forest-950">
-                  Target: ₹{currentWorksheet.estimatedBudget.toLocaleString('en-IN')}
+                <span className="text-xs text-charcoal-500 font-medium flex items-center space-x-1">
+                  <span>Planning Target:</span>
+                  <Rupee amount={currentWorksheet.estimatedBudget} className="text-xs text-forest-950 font-bold" />
                 </span>
               </div>
 
               <ul className="space-y-2 text-xs text-charcoal-700">
                 {currentWorksheet.keyRequirements.map((req, i) => (
-                  <li key={i} className="p-3 rounded-xl bg-white border border-ivory-200 flex items-start space-x-2">
+                  <li key={i} className="p-3 rounded-xl bg-white border border-ivory-200 flex items-start space-x-2 shadow-sm">
                     <span className="text-gold-600 font-bold">•</span>
                     <span>{req}</span>
                   </li>
@@ -152,7 +225,7 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
 
               <div className="space-y-2.5">
                 {currentWorksheet.screeningQuestions.map((q, i) => (
-                  <div key={i} className="p-3 rounded-xl bg-forest-900/80 border border-forest-800 text-xs text-ivory-200 leading-relaxed">
+                  <div key={i} className="p-3 rounded-xl bg-forest-900/80 border border-forest-800 text-xs text-ivory-200 leading-relaxed font-light">
                     "{q}"
                   </div>
                 ))}
@@ -163,13 +236,24 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
 
           {/* Right 2 Cols: Quotation Comparison Matrix */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-charcoal-500">
-                Vendor Quotations ({currentWorksheet.quotes.length})
-              </span>
-              <span className="text-xs text-charcoal-400 font-medium">
-                Allocated Ceiling: ₹{currentWorksheet.estimatedBudget.toLocaleString('en-IN')}
-              </span>
+            
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 px-1">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-charcoal-500">
+                  Vendor Quotations ({currentWorksheet.quotes.length})
+                </span>
+                <span className="text-xs text-charcoal-400 font-medium ml-2">
+                  Planning Ceiling: <Rupee amount={currentWorksheet.estimatedBudget} className="text-xs text-charcoal-600 font-semibold" />
+                </span>
+              </div>
+
+              <button
+                onClick={() => setIsAddQuoteModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-ivory-100 text-xs font-bold transition-all shadow-sm flex items-center space-x-1.5 self-start sm:self-auto"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-gold-400" />
+                <span>Add Vendor Quote</span>
+              </button>
             </div>
 
             {currentWorksheet.quotes.length > 0 ? (
@@ -181,30 +265,41 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                   return (
                     <div
                       key={quote.id}
-                      className={`p-6 rounded-3xl border flex flex-col justify-between transition-all ${
+                      className={`p-6 rounded-3xl border flex flex-col justify-between transition-all relative ${
                         quote.isShortlisted
-                          ? 'border-gold-500 bg-gold-50/60 shadow-md ring-1 ring-gold-400'
+                          ? 'border-gold-500 bg-gold-50/70 shadow-md ring-1 ring-gold-400'
                           : 'border-ivory-300 bg-white hover:border-gold-300 shadow-soft-editorial'
                       }`}
                     >
                       <div>
+                        
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <h4 className="font-bold text-forest-950 text-base leading-snug">
                             {quote.vendorName}
                           </h4>
-                          {quote.isShortlisted && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shrink-0 flex items-center space-x-1">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>Committed</span>
-                            </span>
-                          )}
+                          
+                          <div className="flex items-center space-x-1.5 shrink-0">
+                            {quote.isShortlisted && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white flex items-center space-x-1 shadow-sm">
+                                <CheckCircle2 className="w-3 h-3" />
+                                <span>Committed</span>
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleDeleteQuote(quote.id)}
+                              title="Delete quotation"
+                              className="p-1 text-charcoal-400 hover:text-red-600 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
 
                         <div className="mb-4">
-                          <div className="text-2xl font-serif font-bold text-forest-950">
-                            ₹{quote.quotedAmount.toLocaleString('en-IN')}
+                          <div className="text-2xl font-bold text-forest-950">
+                            <Rupee amount={quote.quotedAmount} className="text-2xl font-bold text-forest-950" />
                           </div>
-                          <div className={`text-xs font-semibold ${isWithinBudget ? 'text-emerald-700' : 'text-red-600'}`}>
+                          <div className={`text-xs font-semibold mt-0.5 ${isWithinBudget ? 'text-emerald-700' : 'text-red-600'}`}>
                             {isWithinBudget
                               ? `Within target allocation (₹${Math.abs(delta).toLocaleString('en-IN')} surplus)`
                               : `Exceeds target by ₹${delta.toLocaleString('en-IN')}`}
@@ -216,35 +311,40 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                         </p>
 
                         {/* Pros */}
-                        <div className="space-y-1 mb-2">
-                          {quote.pros.map((p, i) => (
-                            <div key={i} className="text-[11px] text-emerald-800 flex items-center space-x-1.5">
-                              <ThumbsUp className="w-3 h-3 text-emerald-600 shrink-0" />
-                              <span>{p}</span>
-                            </div>
-                          ))}
-                        </div>
+                        {quote.pros && quote.pros.length > 0 && (
+                          <div className="space-y-1 mb-2">
+                            {quote.pros.map((p, i) => (
+                              <div key={i} className="text-[11px] text-emerald-800 flex items-center space-x-1.5 font-medium">
+                                <ThumbsUp className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span>{p}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Cons */}
-                        <div className="space-y-1 mb-6">
-                          {quote.cons.map((c, i) => (
-                            <div key={i} className="text-[11px] text-amber-800 flex items-center space-x-1.5">
-                              <ThumbsDown className="w-3 h-3 text-amber-600 shrink-0" />
-                              <span>{c}</span>
-                            </div>
-                          ))}
-                        </div>
+                        {quote.cons && quote.cons.length > 0 && (
+                          <div className="space-y-1 mb-6">
+                            {quote.cons.map((c, i) => (
+                              <div key={i} className="text-[11px] text-amber-800 flex items-center space-x-1.5 font-medium">
+                                <ThumbsDown className="w-3 h-3 text-amber-600 shrink-0" />
+                                <span>{c}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                       </div>
 
                       <button
                         onClick={() => handleSelectQuote(quote)}
                         className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center space-x-2 ${
                           quote.isShortlisted
-                            ? 'bg-emerald-700 text-white'
-                            : 'bg-forest-900 hover:bg-forest-800 text-ivory-100'
+                            ? 'bg-emerald-700 text-white shadow-sm'
+                            : 'bg-forest-900 hover:bg-forest-800 text-ivory-100 shadow-sm'
                         }`}
                       >
-                        <span>{quote.isShortlisted ? 'Contract Locked' : 'Select & Commit Quote'}</span>
+                        <span>{quote.isShortlisted ? 'Contract Locked & Committed' : 'Select & Commit Quote'}</span>
                         <ArrowRight className="w-3.5 h-3.5 text-gold-400" />
                       </button>
 
@@ -253,12 +353,21 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                 })}
               </div>
             ) : (
-              <div className="bg-white rounded-3xl p-12 text-center border border-ivory-300">
-                <Briefcase className="w-10 h-10 text-charcoal-300 mx-auto mb-3" />
-                <h4 className="font-bold text-forest-950 text-base">No Quotations Uploaded Yet</h4>
-                <p className="text-xs text-charcoal-500 mt-1 max-w-sm mx-auto">
-                  Use the screening questions on the left when contacting prospective vendors in {plan.city}.
-                </p>
+              <div className="bg-white rounded-3xl p-12 text-center border border-ivory-300 shadow-soft-editorial space-y-4">
+                <Briefcase className="w-10 h-10 text-charcoal-300 mx-auto" />
+                <div>
+                  <h4 className="font-bold text-forest-950 text-base">No Quotations Uploaded Yet</h4>
+                  <p className="text-xs text-charcoal-500 mt-1 max-w-sm mx-auto">
+                    Use the screening questions on the left when speaking to prospective vendors in {formattedCity}.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddQuoteModalOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-ivory-100 text-xs font-bold transition-all shadow-sm inline-flex items-center space-x-1.5"
+                >
+                  <PlusCircle className="w-4 h-4 text-gold-400" />
+                  <span>Add First Vendor Quote</span>
+                </button>
               </div>
             )}
 
@@ -266,6 +375,118 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
 
         </div>
       ) : null}
+
+      {/* Add Vendor Quotation Modal */}
+      {isAddQuoteModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-forest-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-ivory-50 rounded-3xl max-w-lg w-full border border-ivory-300 shadow-2xl overflow-hidden">
+            
+            <div className="p-6 bg-forest-950 text-ivory-100 flex items-center justify-between border-b border-forest-800">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-gold-400">
+                  New Vendor Quotation
+                </span>
+                <h3 className="font-serif font-bold text-xl text-ivory-50">
+                  {currentWorksheet?.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAddQuoteModalOpen(false)}
+                className="p-1.5 text-ivory-400 hover:text-white rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddQuote} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                  Vendor / Business Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newVendorName}
+                  onChange={(e) => setNewVendorName(e.target.value)}
+                  placeholder="e.g. Royal Heritage Caterers"
+                  className="w-full px-3 py-2 rounded-xl border border-ivory-300 bg-white font-medium focus:ring-2 focus:ring-gold-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                  Total Quoted Price (₹) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={newQuotedAmount}
+                  onChange={(e) => setNewQuotedAmount(Number(e.target.value))}
+                  placeholder="e.g. 240000"
+                  className="w-full px-3 py-2 rounded-xl border border-ivory-300 bg-white font-medium focus:ring-2 focus:ring-gold-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                  Package Inclusions & Deliverables
+                </label>
+                <textarea
+                  rows={2}
+                  value={newPackageDetails}
+                  onChange={(e) => setNewPackageDetails(e.target.value)}
+                  placeholder="e.g. Buffet for 200 guests, 3 live counters, complimentary dessert table."
+                  className="w-full px-3 py-2 rounded-xl border border-ivory-300 bg-white font-medium focus:ring-2 focus:ring-gold-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                  Key Strengths / Pros (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={newPros}
+                  onChange={(e) => setNewPros(e.target.value)}
+                  placeholder="e.g. Great tasting session, Eco-friendly cutlery, Owner oversees"
+                  className="w-full px-3 py-2 rounded-xl border border-ivory-300 bg-white font-medium focus:ring-2 focus:ring-gold-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-forest-950 uppercase tracking-wider mb-1">
+                  Trade-offs / Cons (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={newCons}
+                  onChange={(e) => setNewCons(e.target.value)}
+                  placeholder="e.g. 50% non-refundable deposit required, Overtime charge after 11 PM"
+                  className="w-full px-3 py-2 rounded-xl border border-ivory-300 bg-white font-medium focus:ring-2 focus:ring-gold-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t border-ivory-200">
+                <button
+                  type="button"
+                  onClick={() => setIsAddQuoteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-ivory-300 text-charcoal-600 font-semibold hover:bg-ivory-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-forest-900 hover:bg-forest-800 text-ivory-100 font-bold shadow-sm"
+                >
+                  Add Quote to Matrix
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

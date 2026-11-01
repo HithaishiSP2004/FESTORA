@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Palette, 
   Clock, 
@@ -11,14 +11,110 @@ import {
   Camera,
   Sparkles,
   Music,
-  Shirt
+  Shirt,
+  Image as ImageIcon
 } from 'lucide-react';
-import { EventPlan } from '../../types/event';
+import { EventPlan, OccasionType } from '../../types/event';
+import { Rupee } from '../common/Rupee';
 
 interface OverviewTabProps {
   plan: EventPlan;
   onNavigateTab: (tab: 'budget' | 'timeline' | 'vendors') => void;
 }
+
+interface InspirationItem {
+  url: string;
+  caption: string;
+  category: string;
+}
+
+const INSPIRATION_GALLERY: Record<OccasionType, InspirationItem[]> = {
+  wedding: [
+    {
+      url: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=800&q=80',
+      caption: 'Mandap Floral Architecture & Ambient Glow',
+      category: 'Décor & Ambience'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1610057099431-d73a1c9d2f2f?auto=format&fit=crop&w=800&q=80',
+      caption: 'Artisanal Heritage Dining & Thali Service',
+      category: 'Catering Presentation'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1545232979-fbf68fe9b10d?auto=format&fit=crop&w=800&q=80',
+      caption: 'Twilight Deepam Lamp-Lighting Rituals',
+      category: 'Signature Experience'
+    }
+  ],
+  birthday: [
+    {
+      url: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=800&q=80',
+      caption: 'Botanical Garden & Balloon Arch Scenography',
+      category: 'Décor & Styling'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1535141192574-5d4897c13136?auto=format&fit=crop&w=800&q=80',
+      caption: 'Artisanal Dessert Studio & Celebratory Cake',
+      category: 'Food & Dining'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=800&q=80',
+      caption: 'Warm Fairy-Light Canopy & Open-Air Ambience',
+      category: 'Atmosphere & Lighting'
+    }
+  ],
+  anniversary: [
+    {
+      url: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+      caption: 'Heritage Estate Banquet & Gold Floral Styling',
+      category: 'Venue & Scenography'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=800&q=80',
+      caption: 'Multi-Course Gourmet Tasting Presentation',
+      category: 'Catering Excellence'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=800&q=80',
+      caption: 'Candlelit Family Toast & Musical Atmosphere',
+      category: 'Celebration Moment'
+    }
+  ],
+  engagement: [
+    {
+      url: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=800&q=80',
+      caption: 'Contemporary Ring Ceremony Floral Arch',
+      category: 'Ceremony Stage'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+      caption: 'Curated Welcome Mocktails & Hors d\'oeuvres',
+      category: 'Gourmet Service'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&w=800&q=80',
+      caption: 'Golden Sunset Reception & Music Lounge',
+      category: 'Evening Ambience'
+    }
+  ],
+  community: [
+    {
+      url: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80',
+      caption: 'Grand Cultural Stage & Illumination Rigs',
+      category: 'Stage & Production'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+      caption: 'Live Regional Culinary Counters & Utsav Buffet',
+      category: 'Community Dining'
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
+      caption: 'Vibrant Festival Gathering & Musical Energy',
+      category: 'Atmosphere'
+    }
+  ]
+};
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   plan,
@@ -41,6 +137,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
     .filter(m => !m.isCompleted)
     .slice(0, 3);
 
+  // Image fallback states
+  const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+
+  const handleImageError = (index: number) => {
+    setFailedImages(prev => ({ ...prev, [index]: true }));
+  };
+
+  const inspirationItems = INSPIRATION_GALLERY[plan.occasion] || INSPIRATION_GALLERY.wedding;
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) 
+      ? dateStr 
+      : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'catering': return <Utensils className="w-4 h-4" />;
@@ -59,7 +172,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       {/* Top Grid: Concept & Readiness */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Left 2 Cols: Creative Theme Concept */}
+        {/* Left 2 Cols: Creative Theme Concept + Visual Inspiration Gallery */}
         <div className="lg:col-span-2 bg-ivory-50 rounded-3xl p-6 sm:p-8 border border-ivory-300 shadow-soft-editorial space-y-6">
           
           <div className="flex items-center justify-between">
@@ -86,21 +199,76 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </p>
           </div>
 
-          {/* Color Palette */}
-          <div>
+          {/* Curated Visual Inspiration Gallery (Requirement 1 & 2) */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs uppercase font-bold tracking-wider text-forest-900 flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-gold-600" />
+                <span>Visual Styling & Atmosphere Inspiration</span>
+              </span>
+              <span className="text-[11px] text-charcoal-400 font-medium">Curated for {plan.occasion}</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              {inspirationItems.map((item, idx) => {
+                const isFailed = failedImages[idx];
+                return (
+                  <div
+                    key={idx}
+                    className="group relative rounded-2xl overflow-hidden border border-ivory-300 bg-forest-950/5 shadow-sm transition-all hover:shadow-md hover:border-gold-400"
+                  >
+                    <div className="h-36 sm:h-40 w-full overflow-hidden bg-forest-950 relative">
+                      {!isFailed ? (
+                        <img
+                          src={item.url}
+                          alt={item.caption}
+                          onError={() => handleImageError(idx)}
+                          className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-forest-900 text-ivory-200 text-center">
+                          <ImageIcon className="w-6 h-6 text-gold-400 mb-1" />
+                          <span className="text-[11px] font-semibold">{item.category}</span>
+                        </div>
+                      )}
+                      
+                      {/* Overlay Category Tag */}
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-forest-950/75 backdrop-blur-sm text-[10px] font-bold text-gold-300 uppercase tracking-wider border border-gold-500/30">
+                        {item.category}
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-white border-t border-ivory-200">
+                      <p className="text-xs font-semibold text-forest-950 line-clamp-1 group-hover:text-gold-700 transition-colors">
+                        {item.caption}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Color Palette (Clean Multi-Line Wrapping, No Text Truncation) */}
+          <div className="pt-2">
             <span className="text-xs uppercase font-bold tracking-wider text-charcoal-500 block mb-3">
               Curated Celebration Palette
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {plan.themeConcept.colorPalette.map(c => (
-                <div key={c.name} className="flex items-center space-x-2.5 p-2 rounded-xl bg-white border border-ivory-200">
+                <div key={c.name} className="flex items-center space-x-2.5 p-2.5 rounded-xl bg-white border border-ivory-200 shadow-sm min-w-0">
                   <div
-                    className="w-7 h-7 rounded-lg shadow-sm border border-black/10 shrink-0"
+                    className="w-8 h-8 rounded-lg shadow-inner border border-black/10 shrink-0"
                     style={{ backgroundColor: c.hex }}
                   />
-                  <div className="truncate">
-                    <div className="text-xs font-bold text-forest-950 truncate">{c.name}</div>
-                    <div className="text-[10px] text-charcoal-400 uppercase font-mono">{c.hex}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-forest-950 leading-tight break-words line-clamp-2" title={c.name}>
+                      {c.name}
+                    </div>
+                    <div className="text-[10px] text-charcoal-400 uppercase font-mono mt-0.5">
+                      {c.hex}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -153,7 +321,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </span>
               <div className="flex items-baseline space-x-2 mt-1">
                 <span className="text-4xl font-serif font-bold text-forest-950">{readinessScore}%</span>
-                <span className="text-xs text-charcoal-500">Overall Preparedness</span>
+                <span className="text-xs text-charcoal-500 font-medium">Overall Preparedness</span>
               </div>
             </div>
 
@@ -182,7 +350,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </p>
           </div>
 
-          {/* Upcoming Actions */}
+          {/* Upcoming Actions with Formatted Dates */}
           <div className="bg-ivory-50 rounded-3xl p-6 border border-ivory-300 shadow-soft-editorial">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs uppercase font-bold tracking-wider text-forest-900 flex items-center space-x-1.5">
@@ -191,7 +359,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </span>
               <button
                 onClick={() => onNavigateTab('timeline')}
-                className="text-xs font-semibold text-gold-700 hover:text-gold-800"
+                className="text-xs font-semibold text-gold-700 hover:text-gold-800 focus:outline-none focus:underline"
               >
                 View all →
               </button>
@@ -201,12 +369,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               {pendingMilestones.map(m => (
                 <div
                   key={m.id}
-                  className="p-3 rounded-xl bg-white border border-ivory-200 text-xs flex items-start justify-between gap-2"
+                  className="p-3.5 rounded-xl bg-white border border-ivory-200 text-xs flex items-start justify-between gap-2 shadow-sm"
                 >
                   <div>
-                    <div className="font-bold text-forest-950">{m.title}</div>
-                    <div className="text-[11px] text-charcoal-400 mt-0.5">
-                      Target: {m.calculatedDate} (T-{m.dueDateDaysBefore} days)
+                    <div className="font-bold text-forest-950 leading-snug">{m.title}</div>
+                    <div className="text-[11px] text-charcoal-500 mt-1 font-medium">
+                      Target: <span className="text-forest-900 font-semibold">{formatDate(m.calculatedDate)}</span> (T-{m.dueDateDaysBefore} days)
                     </div>
                   </div>
                   {m.priority === 'high' && (
@@ -224,10 +392,10 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       {/* Priority Shield Protection Section */}
-      <div className="bg-forest-950 text-ivory-100 rounded-3xl p-6 sm:p-8 border border-forest-800">
+      <div className="bg-forest-950 text-ivory-100 rounded-3xl p-6 sm:p-8 border border-forest-800 shadow-elevated-editorial">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-forest-900 border border-gold-500/40 text-gold-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-forest-900 border border-gold-500/40 text-gold-400 flex items-center justify-center shadow-sm">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -267,8 +435,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-ivory-50">{cat.name}</div>
-                    <div className="text-xs font-serif font-bold text-gold-300 mt-0.5">
-                      ₹{cat.allocatedAmount.toLocaleString('en-IN')}
+                    <div className="mt-0.5">
+                      <Rupee amount={cat.allocatedAmount} className="text-gold-300 text-xs font-bold" />
                     </div>
                   </div>
                 </div>

@@ -13,14 +13,151 @@ import {
   Users,
   ShieldCheck
 } from 'lucide-react';
-import { EventPlan, OccasionType, PriorityLevel, PrioritySettings } from '../../types/event';
+import { EventPlan, OccasionType, PriorityLevel, PrioritySettings, BudgetCategory, VendorWorksheet } from '../../types/event';
 import { BudgetEngine } from '../../engine/budgetEngine';
 import { TimelineEngine } from '../../engine/timelineEngine';
 import { AiService } from '../../services/aiService';
+import { Rupee } from '../common/Rupee';
 
 interface CreationStudioProps {
   onPlanCreated: (plan: EventPlan) => void;
   onCancel: () => void;
+}
+
+function generateRealisticVendorWorksheets(
+  city: string,
+  budgetCategories: BudgetCategory[]
+): VendorWorksheet[] {
+  const cateringAlloc = budgetCategories.find(c => c.category === 'catering')?.allocatedAmount || 200000;
+  const venueAlloc = budgetCategories.find(c => c.category === 'venue')?.allocatedAmount || 150000;
+  const decorAlloc = budgetCategories.find(c => c.category === 'decor')?.allocatedAmount || 80000;
+  const photoAlloc = budgetCategories.find(c => c.category === 'photography')?.allocatedAmount || 60000;
+
+  const cityName = city ? city.charAt(0).toUpperCase() + city.slice(1) : 'Bangalore';
+
+  return [
+    {
+      id: 'vw-catering',
+      category: 'catering',
+      title: 'Catering & Dining Worksheet',
+      estimatedBudget: cateringAlloc,
+      status: 'reviewing',
+      keyRequirements: [
+        'Multi-course regional specialty menu & live counters',
+        'Welcome beverages, mocktail bar & dessert spread',
+        'Uniformed waitstaff, setup & cleanup included'
+      ],
+      screeningQuestions: [
+        'Is mineral water and welcome beverage service included in per-plate rate?',
+        'What is your cancellation policy if headcount changes 7 days prior?',
+        'Do you provide live food counter chefs and cleanup personnel?'
+      ],
+      quotes: [
+        {
+          id: `q-cat-1-${Date.now()}`,
+          vendorName: `${cityName} Artisanal Feasts & Banquets`,
+          quotedAmount: Math.round(cateringAlloc * 0.95),
+          packageDetails: 'Full celebratory buffet with 3 live counters, mocktail bar, and personalized dessert studio.',
+          pros: ['Exemplary food tasting rating', 'Eco-friendly tableware', 'Dedicated on-site manager'],
+          cons: ['Requires 40% advance deposit at signing'],
+          isShortlisted: true
+        },
+        {
+          id: `q-cat-2-${Date.now() + 1}`,
+          vendorName: 'Royal Spice Caterers & Events',
+          quotedAmount: Math.round(cateringAlloc * 1.05),
+          packageDetails: 'Grand regional feast spread with 4 live stations and premium dessert fountain.',
+          pros: ['Generous portion sizes', 'Extensive multi-cuisine menu options'],
+          cons: [`Exceeds planning benchmark by ₹${Math.round(cateringAlloc * 0.05).toLocaleString('en-IN')}`],
+          isShortlisted: false
+        }
+      ]
+    },
+    {
+      id: 'vw-venue',
+      category: 'venue',
+      title: 'Celebration Venue & Banquet Hall',
+      estimatedBudget: venueAlloc,
+      status: 'reviewing',
+      keyRequirements: [
+        'Air-conditioned banquet or lush open lawn with backup generator',
+        'Dedicated parking and valet coordination',
+        'Ample green rooms / dressing suites for hosts'
+      ],
+      screeningQuestions: [
+        'Are generator and AC power backup charges included in the base rental?',
+        'What is the permitted music curfew and sound cutoff hour?',
+        'Is outside catering and decor permitted without penalty fee?'
+      ],
+      quotes: [
+        {
+          id: `q-ven-1-${Date.now() + 2}`,
+          vendorName: `${cityName} Heritage Garden & Banquets`,
+          quotedAmount: Math.round(venueAlloc * 0.96),
+          packageDetails: 'Full-day access, climate-controlled main hall, green lawn, 2 bridal suites, backup generator.',
+          pros: ['Convenient central location', 'Ample valet parking capacity'],
+          cons: ['Teardown must conclude strictly by 11:30 PM'],
+          isShortlisted: false
+        }
+      ]
+    },
+    {
+      id: 'vw-decor',
+      category: 'decor',
+      title: 'Styling, Florals & Ambient Scenography',
+      estimatedBudget: decorAlloc,
+      status: 'reviewing',
+      keyRequirements: [
+        'Custom ceremonial backdrop and entrance floral arch',
+        'Ambient warm fairy-light canopy and table centerpieces',
+        'Eco-friendly seasonal florals and props'
+      ],
+      screeningQuestions: [
+        'Are heavy power generator cabling and setup labor included?',
+        'How many hours prior to ceremony commencement will decor be 100% ready?',
+        'Do you provide safety fire clearance for ceremonial candles or lamps?'
+      ],
+      quotes: [
+        {
+          id: `q-dec-1-${Date.now() + 3}`,
+          vendorName: 'Aura Floral & Event Stylists',
+          quotedAmount: Math.round(decorAlloc * 0.98),
+          packageDetails: 'Entrance floral styling, stage backdrop with brass fixtures, ambient lighting and seating decor.',
+          pros: ['Prompt setup 3 hours before start', 'Fresh local blooms sourced morning-of'],
+          cons: ['Extra charge for overnight teardown'],
+          isShortlisted: false
+        }
+      ]
+    },
+    {
+      id: 'vw-photography',
+      category: 'photography',
+      title: 'Candid Photography & Cinematography',
+      estimatedBudget: photoAlloc,
+      status: 'reviewing',
+      keyRequirements: [
+        '1 Senior Candid Photographer + 1 Cinematic Videographer',
+        'Teaser highlight reel (60 seconds) within 72 hours',
+        'High-resolution raw image drive + 1 Premium photo album'
+      ],
+      screeningQuestions: [
+        'What is the guaranteed turnaround for edited video and album proofing?',
+        'Are crew travel, food, and drone permits included in the package?',
+        'Can we review unedited raw photos before final album selection?'
+      ],
+      quotes: [
+        {
+          id: `q-pho-1-${Date.now() + 4}`,
+          vendorName: 'Lumière Memories & Films',
+          quotedAmount: Math.round(photoAlloc * 0.95),
+          packageDetails: 'Full ceremony coverage, 2 photographers, cinematic highlight reel, 200 edited images, deluxe album.',
+          pros: ['Award-winning candid capture style', 'Quick 48-hour social media teaser'],
+          cons: ['Full album print delivery takes 3-4 weeks'],
+          isShortlisted: false
+        }
+      ]
+    }
+  ];
 }
 
 export const CreationStudio: React.FC<CreationStudioProps> = ({
@@ -122,18 +259,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
         themeConcept: generatedConcept.concept,
         budgetCategories,
         milestones,
-        vendorWorksheets: [
-          {
-            id: 'vw-cat',
-            category: 'catering',
-            title: 'Catering & Dining Worksheet',
-            estimatedBudget: budgetCategories.find(c => c.category === 'catering')?.allocatedAmount || 280000,
-            status: 'pending',
-            keyRequirements: ['Live food counters', 'Regional traditional delicacies', 'Welcome beverage service'],
-            screeningQuestions: ['Is waitstaff included in per plate rate?', 'What is the refund cutoff for headcount drops?'],
-            quotes: []
-          }
-        ]
+        vendorWorksheets: generateRealisticVendorWorksheets(city, budgetCategories)
       };
 
       onPlanCreated(newPlan);
@@ -180,7 +306,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
         },
         budgetCategories,
         milestones,
-        vendorWorksheets: []
+        vendorWorksheets: generateRealisticVendorWorksheets(city, budgetCategories)
       };
       onPlanCreated(fallbackPlan);
     } finally {
@@ -461,9 +587,9 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                   {new Date(targetDate).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-              <div className="py-2.5 flex justify-between">
+              <div className="py-2.5 flex justify-between items-center">
                 <span className="text-charcoal-500">Target Budget</span>
-                <span className="font-bold text-gold-800">₹{totalBudget.toLocaleString('en-IN')}</span>
+                <Rupee amount={totalBudget} className="font-bold text-gold-800 text-sm sm:text-base" />
               </div>
               <div className="py-2.5 flex justify-between">
                 <span className="text-charcoal-500">Guest Headcount</span>

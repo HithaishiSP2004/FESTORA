@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { EventPlan } from '../../types/event';
 import { INDIAN_WEDDING_PRESET, GOLDEN_ANNIVERSARY_PRESET } from '../../engine/culturalTemplates';
+import { Rupee } from '../common/Rupee';
 
 interface LandingPageProps {
   onStartPlanning: () => void;
@@ -130,7 +131,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-white border border-ivory-200">
                       <span className="text-charcoal-400 block text-[10px] uppercase font-bold">Planned Scale</span>
-                      <strong className="text-forest-950 font-serif text-sm">₹8,00,000 • 200 Guests</strong>
+                      <div className="flex items-center space-x-1 mt-0.5">
+                        <Rupee amount={800000} className="text-forest-950 font-bold text-sm" />
+                        <span className="text-forest-950 font-semibold text-xs">• 200 Guests</span>
+                      </div>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white border border-ivory-200">
                       <span className="text-charcoal-400 block text-[10px] uppercase font-bold">Protected Priorities</span>
@@ -172,7 +176,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             {/* Step 1: Initial Plan */}
             <div className="bg-forest-900/80 p-6 rounded-2xl border border-forest-700">
               <div className="text-xs text-gold-400 font-bold uppercase tracking-wider mb-2">1. Initial Plan</div>
-              <div className="text-xl font-bold font-serif mb-4">₹8,00,000 • 200 Guests</div>
+              <div className="flex items-center space-x-1 mb-4">
+                <Rupee amount={800000} className="text-xl font-bold text-ivory-50" />
+                <span className="text-ivory-200 text-sm font-medium">• 200 Guests</span>
+              </div>
               <ul className="space-y-2 text-xs text-ivory-300">
                 <li className="flex items-center space-x-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-gold-400 shrink-0" />

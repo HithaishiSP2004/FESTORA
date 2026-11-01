@@ -28,6 +28,14 @@ dist-ssr
 .env.*
 !.env.example
 
+# Internal planning and prompt documents
+phase-1.md
+plan-reupdate.md
+
+# Design screenshots and temporary media
+current desgins screenshots/
+image.png
+
 # Temporary / Cache
 .eslintcache
 .turbo

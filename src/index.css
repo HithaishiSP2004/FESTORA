@@ -16,6 +16,11 @@
   .font-display {
     font-family: 'Cinzel', 'Playfair Display', Georgia, serif;
   }
+
+  /* Rupee glyph fallback safeguard to ensure crisp modern appearance */
+  .rupee-symbol, .font-serif .rupee, .font-display .rupee {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+  }
 }
 
 /* Custom editorial scrollbar */

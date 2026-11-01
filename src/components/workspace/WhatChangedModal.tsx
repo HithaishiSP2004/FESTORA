@@ -11,6 +11,7 @@ import { BudgetEngine } from '../../engine/budgetEngine';
 import { TimelineEngine } from '../../engine/timelineEngine';
 import { ChangeDiffEngine } from '../../engine/changeDiffEngine';
 import { AiService } from '../../services/aiService';
+import { Rupee } from '../common/Rupee';
 
 interface WhatChangedModalProps {
   isOpen: boolean;
@@ -310,8 +311,9 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
 
                 <div className="text-right shrink-0">
                   <div className="text-xs font-bold">Delta Variance</div>
-                  <div className="text-lg font-serif font-bold">
-                    {diffReport.budgetDifference >= 0 ? '+' : ''}₹{diffReport.budgetDifference.toLocaleString('en-IN')}
+                  <div className="text-lg font-bold font-sans tabular-nums">
+                    {diffReport.budgetDifference >= 0 ? '+' : ''}
+                    <Rupee amount={Math.abs(diffReport.budgetDifference)} className="text-lg font-bold" />
                   </div>
                 </div>
               </div>
@@ -322,7 +324,7 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
                   Category-Wise Comparison: Before vs After
                 </span>
 
-                <div className="bg-white rounded-2xl border border-ivory-300 overflow-hidden divide-y divide-ivory-200">
+                <div className="bg-white rounded-2xl border border-ivory-300 overflow-hidden divide-y divide-ivory-200 shadow-sm">
                   <div className="grid grid-cols-12 p-3 text-[11px] font-bold uppercase text-charcoal-500 bg-ivory-100">
                     <div className="col-span-4">Category & Priority</div>
                     <div className="col-span-2 text-right">Before</div>
@@ -347,14 +349,18 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
                         )}
                       </div>
 
-                      <div className="col-span-2 text-right font-serif text-charcoal-500">
-                        ₹{cd.previousAmount.toLocaleString('en-IN')}
+                      <div className="col-span-2 text-right text-charcoal-500 font-semibold">
+                        <Rupee amount={cd.previousAmount} className="text-xs text-charcoal-500 font-semibold" />
                       </div>
 
-                      <div className="col-span-2 text-right font-serif font-bold text-forest-950">
-                        ₹{cd.newAmount.toLocaleString('en-IN')}
+                      <div className="col-span-2 text-right font-bold text-forest-950">
+                        <Rupee amount={cd.newAmount} className="text-xs font-bold text-forest-950" />
                         <div className={`text-[10px] ${cd.difference < 0 ? 'text-amber-700 font-semibold' : cd.difference > 0 ? 'text-emerald-700 font-semibold' : 'text-charcoal-400'}`}>
-                          {cd.difference > 0 ? `+₹${cd.difference.toLocaleString('en-IN')}` : cd.difference < 0 ? `-₹${Math.abs(cd.difference).toLocaleString('en-IN')}` : '0'}
+                          {cd.difference > 0 ? (
+                            <span>+<Rupee amount={cd.difference} className="text-[10px] font-semibold text-emerald-700" /></span>
+                          ) : cd.difference < 0 ? (
+                            <span>-<Rupee amount={Math.abs(cd.difference)} className="text-[10px] font-semibold text-amber-700" /></span>
+                          ) : '0'}
                         </div>
                       </div>
 

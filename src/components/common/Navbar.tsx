@@ -40,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           
           <button
             onClick={() => onNavigate('landing')}
-            className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
               currentView === 'landing'
                 ? 'bg-forest-900 text-ivory-100 shadow-sm'
                 : 'text-charcoal-600 hover:text-forest-900 hover:bg-ivory-200'
@@ -52,7 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => onNavigate('workspace')}
-            className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
               currentView === 'workspace'
                 ? 'bg-forest-900 text-ivory-100 shadow-sm'
                 : 'text-charcoal-600 hover:text-forest-900 hover:bg-ivory-200'
@@ -61,15 +61,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Calendar className="w-4 h-4" />
             <span className="hidden md:inline">Command Centre</span>
             {activePlan && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold-400/20 text-gold-700 font-bold ml-1 border border-gold-400/30">
-                v{activePlan.version}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1 border ${
+                currentView === 'workspace'
+                  ? 'bg-gold-400/20 text-gold-300 border-gold-400/40'
+                  : 'bg-gold-100 text-gold-800 border-gold-300'
+              }`}>
+                v{activePlan.version}.0
               </span>
             )}
           </button>
 
           <button
             onClick={() => onNavigate('create')}
-            className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center space-x-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center space-x-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50 ${
               currentView === 'create'
                 ? 'bg-gold-600 text-white shadow-sm'
                 : 'bg-gold-500 hover:bg-gold-600 text-forest-950 shadow-sm'
@@ -83,7 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onResetDemo}
             title="Reset to flagship demonstration baseline"
-            className="p-2 text-charcoal-400 hover:text-forest-800 hover:bg-ivory-200 rounded-xl transition-colors"
+            className="p-2 text-charcoal-400 hover:text-forest-800 hover:bg-ivory-200 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/50"
           >
             <RotateCcw className="w-4 h-4" />
           </button>

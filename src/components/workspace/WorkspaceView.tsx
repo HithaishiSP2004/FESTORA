@@ -109,10 +109,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
         
         <button
           onClick={() => setActiveTab('overview')}
-          className={`pb-4 px-3 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 ${
+          className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'overview'
-              ? 'border-forest-900 text-forest-950'
-              : 'border-transparent text-charcoal-500 hover:text-forest-900'
+              ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
+              : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
           <LayoutDashboard className="w-4 h-4 text-gold-600" />
@@ -121,10 +121,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
         <button
           onClick={() => setActiveTab('budget')}
-          className={`pb-4 px-3 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 ${
+          className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'budget'
-              ? 'border-forest-900 text-forest-950'
-              : 'border-transparent text-charcoal-500 hover:text-forest-900'
+              ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
+              : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
           <IndianRupee className="w-4 h-4 text-gold-600" />
@@ -133,10 +133,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
         <button
           onClick={() => setActiveTab('timeline')}
-          className={`pb-4 px-3 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 ${
+          className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'timeline'
-              ? 'border-forest-900 text-forest-950'
-              : 'border-transparent text-charcoal-500 hover:text-forest-900'
+              ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
+              : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
           <Calendar className="w-4 h-4 text-gold-600" />
@@ -145,10 +145,10 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
         <button
           onClick={() => setActiveTab('vendors')}
-          className={`pb-4 px-3 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 ${
+          className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'vendors'
-              ? 'border-forest-900 text-forest-950'
-              : 'border-transparent text-charcoal-500 hover:text-forest-900'
+              ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
+              : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
           <Briefcase className="w-4 h-4 text-gold-600" />

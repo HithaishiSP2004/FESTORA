@@ -2,6 +2,7 @@ import React from 'react';
 import { X, History, RotateCcw } from 'lucide-react';
 import { EventSnapshot, EventPlan } from '../../types/event';
 import { EventStorage } from '../../engine/eventStorage';
+import { Rupee } from '../common/Rupee';
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -92,8 +93,10 @@ export const VersionHistoryModal: React.FC<VersionHistoryModalProps> = ({
                       {snap.description}
                     </p>
 
-                    <div className="text-[11px] text-charcoal-500 mt-1">
-                      Budget: ₹{snap.plan.totalBudget.toLocaleString('en-IN')} • {snap.plan.guestCount} Guests
+                    <div className="text-[11px] text-charcoal-500 mt-1 flex items-center space-x-1">
+                      <span>Budget:</span>
+                      <Rupee amount={snap.plan.totalBudget} className="text-[11px] font-semibold text-charcoal-700" />
+                      <span>• {snap.plan.guestCount} Guests</span>
                     </div>
                   </div>
 

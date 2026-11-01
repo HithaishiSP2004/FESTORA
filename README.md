@@ -1,6 +1,6 @@
 # FESTORA — Adaptive Event Intelligence
 > **Every celebration deserves a plan that works.**  
-> Google x Hack2Skill PromptWars Virtual | **Challenge 5: Celebration & Event Planner**
+> Intelligent celebration planning and budget reconciliation companion powered by Google Gemini.
 
 ---
 
