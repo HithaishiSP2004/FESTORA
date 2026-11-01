@@ -10,7 +10,8 @@ import {
   AdaptOutputSchema,
   GenerateConceptRequestSchema,
   AdaptPlanRequestSchema,
-  handleAiGenerate
+  handleAiGenerate,
+  handleAiAdapt
 } from '../server/geminiApiHandler';
 import { EventPlan } from '../types/event';
 import { AiService } from '../services/aiService';
@@ -456,14 +457,15 @@ describe('FESTORA Core Architecture Test Suite', () => {
     expect(restored!.version).toBe(3);
   });
 
-  // TEST 18: Serverless API Handler HTTP Method & Schema integration
-  it('18. API Handler rejects GET requests with HTTP 405 and validates real plan adaptation payload', async () => {
+  // Helper to create mock HTTP request/response objects
+  function createMockHttp(method: string, body?: unknown) {
     let statusCode = 200;
     let responseData = '';
     const mockReq = {
-      method: 'GET',
+      method,
       headers: {},
       socket: { remoteAddress: '127.0.0.1' },
+      body,
     } as unknown as IncomingMessage;
 
     const mockRes = {
@@ -477,9 +479,20 @@ describe('FESTORA Core Architecture Test Suite', () => {
       }
     } as unknown as ServerResponse;
 
-    await handleAiGenerate(mockReq, mockRes);
-    expect(statusCode).toBe(405);
-    expect(JSON.parse(responseData)).toEqual({ error: 'Method Not Allowed. Use POST.' });
+    return {
+      req: mockReq,
+      res: mockRes,
+      getStatus: () => statusCode,
+      getBody: () => responseData ? JSON.parse(responseData) : null,
+    };
+  }
+
+  // TEST 18: Serverless API Handler HTTP Method & Schema integration
+  it('18. API Handler rejects GET requests with HTTP 405 and validates real plan adaptation payload', async () => {
+    const http = createMockHttp('GET');
+    await handleAiGenerate(http.req, http.res);
+    expect(http.getStatus()).toBe(405);
+    expect(http.getBody()).toEqual({ error: 'Method Not Allowed. Use POST.' });
 
     // Verify valid real plan schema parsing
     const validAdaptResult = AdaptPlanRequestSchema.safeParse({
@@ -491,6 +504,57 @@ describe('FESTORA Core Architecture Test Suite', () => {
       }
     });
     expect(validAdaptResult.success).toBe(true);
+  });
+
+  // TEST 19: Valid POST /api/ai/generate execution in zero-downtime cultural fallback mode
+  it('19. POST /api/ai/generate succeeds with 200 and cultural fallback when API key is unconfigured or network offline', async () => {
+    const http = createMockHttp('POST', {
+      occasion: 'wedding',
+      city: 'Udaipur',
+      totalBudget: 800000,
+      guestCount: 200,
+      priorities: { catering: 'high', venue: 'high' }
+    });
+
+    await handleAiGenerate(http.req, http.res);
+    expect(http.getStatus()).toBe(200);
+    const body = http.getBody();
+    expect(['fallback_template', 'error_fallback']).toContain(body.source);
+    expect(body.concept.title).toBeDefined();
+    expect(body.concept.colorPalette.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // TEST 20: Valid POST /api/ai/adapt execution with complete plan and trade-off calculation
+  it('20. POST /api/ai/adapt succeeds with 200 and compromise advice for real celebration plan', async () => {
+    const http = createMockHttp('POST', {
+      changePrompt: 'Increase guests by 50 and decrease budget by ₹1L',
+      previousPlan: INDIAN_WEDDING_PRESET,
+      proposedChanges: {
+        newBudget: 700000,
+        newGuestCount: 250
+      }
+    });
+
+    await handleAiAdapt(http.req, http.res);
+    expect(http.getStatus()).toBe(200);
+    const body = http.getBody();
+    expect(['fallback_template', 'error_fallback']).toContain(body.source);
+    expect(body.adaptation.strategicAdvice).toBeDefined();
+    expect(body.adaptation.compromiseSuggestions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // TEST 21: Malformed payloads return HTTP 400 with Zod error issues
+  it('21. Invalid request payloads return HTTP 400 Bad Request with validation details', async () => {
+    const http = createMockHttp('POST', {
+      invalidField: true
+    });
+
+    await handleAiGenerate(http.req, http.res);
+    expect(http.getStatus()).toBe(400);
+    const body = http.getBody();
+    expect(body.error).toBe('Invalid request body');
+    expect(body.details).toBeDefined();
+    expect(body.details.length).toBeGreaterThan(0);
   });
 
 });

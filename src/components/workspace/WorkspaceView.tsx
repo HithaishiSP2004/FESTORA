@@ -29,6 +29,34 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const tabListRef = React.useRef<HTMLDivElement>(null);
+  const tabsList: Array<'overview' | 'budget' | 'timeline' | 'vendors'> = ['overview', 'budget', 'timeline', 'vendors'];
+
+  const handleTabKeyDown = (e: React.KeyboardEvent, currentTab: 'overview' | 'budget' | 'timeline' | 'vendors') => {
+    const currentIdx = tabsList.indexOf(currentTab);
+    let targetIdx = -1;
+
+    if (e.key === 'ArrowRight') {
+      targetIdx = (currentIdx + 1) % tabsList.length;
+    } else if (e.key === 'ArrowLeft') {
+      targetIdx = (currentIdx - 1 + tabsList.length) % tabsList.length;
+    } else if (e.key === 'Home') {
+      targetIdx = 0;
+    } else if (e.key === 'End') {
+      targetIdx = tabsList.length - 1;
+    }
+
+    if (targetIdx !== -1) {
+      e.preventDefault();
+      const nextTab = tabsList[targetIdx];
+      setActiveTab(nextTab);
+      const buttons = tabListRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+      if (buttons && buttons[targetIdx]) {
+        buttons[targetIdx].focus();
+      }
+    }
+  };
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
@@ -106,6 +134,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
       {/* Navigation Tabs Bar */}
       <div 
+        ref={tabListRef}
         role="tablist" 
         aria-label="Celebration workspace views"
         className="flex border-b border-ivory-300 overflow-x-auto gap-2 sm:gap-4 no-scrollbar"
@@ -117,6 +146,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           aria-controls="panel-overview"
           tabIndex={activeTab === 'overview' ? 0 : -1}
           onClick={() => setActiveTab('overview')}
+          onKeyDown={e => handleTabKeyDown(e, 'overview')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'overview'
               ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
@@ -134,6 +164,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           aria-controls="panel-budget"
           tabIndex={activeTab === 'budget' ? 0 : -1}
           onClick={() => setActiveTab('budget')}
+          onKeyDown={e => handleTabKeyDown(e, 'budget')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'budget'
               ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
@@ -151,6 +182,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           aria-controls="panel-timeline"
           tabIndex={activeTab === 'timeline' ? 0 : -1}
           onClick={() => setActiveTab('timeline')}
+          onKeyDown={e => handleTabKeyDown(e, 'timeline')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'timeline'
               ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
@@ -168,6 +200,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
           aria-controls="panel-vendors"
           tabIndex={activeTab === 'vendors' ? 0 : -1}
           onClick={() => setActiveTab('vendors')}
+          onKeyDown={e => handleTabKeyDown(e, 'vendors')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'vendors'
               ? 'border-forest-900 text-forest-950 bg-ivory-50/70 shadow-[inset_0_-2px_0_0_#163323]'
