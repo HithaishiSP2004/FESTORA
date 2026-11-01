@@ -5,7 +5,12 @@ import {
   HelpCircle, 
   ThumbsUp, 
   ThumbsDown,
-  ArrowRight
+  ArrowRight,
+  Info,
+  Building,
+  Utensils,
+  Camera,
+  Sparkles
 } from 'lucide-react';
 import { EventPlan, VendorWorksheet, VendorQuote } from '../../types/event';
 
@@ -52,6 +57,15 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
     }
   };
 
+  const getWorksheetIcon = (cat: string) => {
+    switch (cat) {
+      case 'catering': return <Utensils className="w-3.5 h-3.5" />;
+      case 'decor': return <Sparkles className="w-3.5 h-3.5" />;
+      case 'photography': return <Camera className="w-3.5 h-3.5" />;
+      default: return <Building className="w-3.5 h-3.5" />;
+    }
+  };
+
   return (
     <div className="space-y-8">
       
@@ -60,12 +74,20 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
         <span className="text-xs uppercase font-bold tracking-wider text-gold-800">
           Vendor Intelligence & Quotation Review
         </span>
-        <h2 className="text-2xl font-serif font-bold text-forest-950 mt-1">
+        <h2 className="text-2xl sm:text-3xl font-serif font-bold text-forest-950 mt-1">
           Vendor Desk
         </h2>
         <p className="text-xs sm:text-sm text-charcoal-600 mt-1 max-w-2xl">
           Review customized briefs, cultural screening checklists, and side-by-side vendor quotes before signing contracts.
         </p>
+
+        {/* Notice on provenance */}
+        <div className="mt-4 p-3 bg-white rounded-xl border border-ivory-200 text-xs text-charcoal-600 flex items-start space-x-2">
+          <Info className="w-4 h-4 text-gold-600 shrink-0 mt-0.5" />
+          <span>
+            Quotes shown are realistic market estimates for {plan.city}. Selecting a quote commits that amount to your active budget tracker.
+          </span>
+        </div>
 
         {/* Category Pills */}
         <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-ivory-300">
@@ -73,15 +95,15 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
             <button
               key={vw.id}
               onClick={() => setActiveCategory(vw.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
                 currentWorksheet?.id === vw.id
                   ? 'bg-forest-900 text-ivory-100 shadow-sm'
                   : 'bg-white border border-ivory-300 text-charcoal-700 hover:border-gold-400'
               }`}
             >
-              <Briefcase className="w-3.5 h-3.5 text-gold-400" />
+              {getWorksheetIcon(vw.category)}
               <span>{vw.title}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold uppercase ${
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
                 vw.status === 'booked' ? 'bg-emerald-200 text-emerald-900' : 'bg-gold-100 text-gold-900'
               }`}>
                 {vw.status}
@@ -111,7 +133,7 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
 
               <ul className="space-y-2 text-xs text-charcoal-700">
                 {currentWorksheet.keyRequirements.map((req, i) => (
-                  <li key={i} className="p-2.5 rounded-xl bg-white border border-ivory-200 flex items-start space-x-2">
+                  <li key={i} className="p-3 rounded-xl bg-white border border-ivory-200 flex items-start space-x-2">
                     <span className="text-gold-600 font-bold">•</span>
                     <span>{req}</span>
                   </li>
@@ -143,10 +165,10 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
           <div className="lg:col-span-2 space-y-4">
             <div className="flex justify-between items-center px-1">
               <span className="text-xs font-bold uppercase tracking-wider text-charcoal-500">
-                Received Vendor Quotations ({currentWorksheet.quotes.length})
+                Vendor Quotations ({currentWorksheet.quotes.length})
               </span>
-              <span className="text-xs text-charcoal-400">
-                Target Budget: ₹{currentWorksheet.estimatedBudget.toLocaleString('en-IN')}
+              <span className="text-xs text-charcoal-400 font-medium">
+                Allocated Ceiling: ₹{currentWorksheet.estimatedBudget.toLocaleString('en-IN')}
               </span>
             </div>
 
@@ -161,7 +183,7 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                       key={quote.id}
                       className={`p-6 rounded-3xl border flex flex-col justify-between transition-all ${
                         quote.isShortlisted
-                          ? 'border-gold-500 bg-gold-50/50 shadow-md ring-1 ring-gold-400'
+                          ? 'border-gold-500 bg-gold-50/60 shadow-md ring-1 ring-gold-400'
                           : 'border-ivory-300 bg-white hover:border-gold-300 shadow-soft-editorial'
                       }`}
                     >
@@ -173,7 +195,7 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                           {quote.isShortlisted && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shrink-0 flex items-center space-x-1">
                               <CheckCircle2 className="w-3 h-3" />
-                              <span>Booked</span>
+                              <span>Committed</span>
                             </span>
                           )}
                         </div>
@@ -235,7 +257,7 @@ export const VendorDeskTab: React.FC<VendorDeskTabProps> = ({
                 <Briefcase className="w-10 h-10 text-charcoal-300 mx-auto mb-3" />
                 <h4 className="font-bold text-forest-950 text-base">No Quotations Uploaded Yet</h4>
                 <p className="text-xs text-charcoal-500 mt-1 max-w-sm mx-auto">
-                  Use the screening questions above when contacting prospective vendors in {plan.city}.
+                  Use the screening questions on the left when contacting prospective vendors in {plan.city}.
                 </p>
               </div>
             )}

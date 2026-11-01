@@ -70,20 +70,20 @@ export const App: React.FC = () => {
       </main>
 
       {/* Editorial Footer */}
-      <footer className="border-t border-ivory-300 bg-ivory-50/80 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-charcoal-500">
+      <footer className="border-t border-ivory-300 bg-ivory-50/80 py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-charcoal-500">
           
           <div className="flex items-center space-x-2">
             <span className="font-display text-base font-bold text-forest-950">FESTORA</span>
             <span className="text-gold-700 font-medium">| Adaptive Event Intelligence</span>
           </div>
 
-          <div className="text-center sm:text-right space-y-1">
-            <p>
-              Engineered for <span className="font-semibold text-forest-950">Google x Hack2Skill PromptWars Virtual</span>
+          <div className="text-center sm:text-right space-y-0.5">
+            <p className="font-medium text-charcoal-700">
+              Every celebration deserves a plan that works.
             </p>
             <p className="text-[11px] text-charcoal-400">
-              Deterministic Calculation Engine + Google Gemini AI • Challenge 5: Celebration & Event Planner
+              Deterministic Financial Calculations & Culturally Intelligent Event Design
             </p>
           </div>
 

@@ -154,10 +154,10 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
         {/* Modal Body: Scrollable */}
         <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
           
-          {/* Quick Simulation Presets for Judges */}
+          {/* Quick Simulation Presets */}
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-charcoal-500 block mb-2">
-              Quick Judge Simulation Scenarios
+              Instant Simulation Scenarios
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               
@@ -167,7 +167,7 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
                 className="p-3 text-left rounded-xl border border-gold-300 bg-gold-50/70 hover:bg-gold-100 transition-colors"
               >
                 <div className="text-xs font-bold text-forest-950">+50 Guests, -₹1.0 Lakh</div>
-                <div className="text-[11px] text-charcoal-600 mt-0.5">The classic hackathon double-bind test</div>
+                <div className="text-[11px] text-charcoal-600 mt-0.5">Tightened budget with guest surge</div>
               </button>
 
               <button
@@ -184,7 +184,7 @@ export const WhatChangedModal: React.FC<WhatChangedModalProps> = ({
                 onClick={() => applyPreset(-30, -150000, "Intimate family downsizing with ₹1.5L savings target")}
                 className="p-3 text-left rounded-xl border border-ivory-300 bg-white hover:border-gold-300 transition-colors"
               >
-                <div className="text-xs font-bold text-forest-950">-30 Guests, Budget Reduction</div>
+                <div className="text-xs font-bold text-forest-950">-30 Guests Downsizing</div>
                 <div className="text-[11px] text-charcoal-600 mt-0.5">Optimize flexible categories</div>
               </button>
 

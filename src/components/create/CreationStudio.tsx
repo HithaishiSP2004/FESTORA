@@ -5,8 +5,13 @@ import {
   ArrowLeft, 
   Calendar, 
   MapPin, 
-  Lock, 
-  Loader2
+  Loader2,
+  Heart,
+  Gem,
+  Award,
+  Cake,
+  Users,
+  ShieldCheck
 } from 'lucide-react';
 import { EventPlan, OccasionType, PriorityLevel, PrioritySettings } from '../../types/event';
 import { BudgetEngine } from '../../engine/budgetEngine';
@@ -28,8 +33,8 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
   const [occasion, setOccasion] = useState<OccasionType>('wedding');
   const [title, setTitle] = useState('');
   const [city, setCity] = useState('New Delhi');
-  const [targetDate, setTargetDate] = useState('2026-12-15');
-  const [totalBudget, setTotalBudget] = useState<number>(750000); // 7.5L
+  const [targetDate, setTargetDate] = useState('2026-12-18');
+  const [totalBudget, setTotalBudget] = useState<number>(800000); // ₹8 Lakhs
   const [guestCount, setGuestCount] = useState<number>(200);
 
   const [priorities, setPriorities] = useState<PrioritySettings>({
@@ -43,12 +48,37 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
 
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const occasionOptions: { id: OccasionType; label: string; icon: string; desc: string }[] = [
-    { id: 'wedding', label: 'Indian Wedding', icon: '💍', desc: 'Multi-day grand ceremony & reception' },
-    { id: 'engagement', label: 'Engagement / Roka', icon: '✨', desc: 'Ring exchange and family gathering' },
-    { id: 'anniversary', label: 'Milestone Anniversary', icon: '🥂', desc: 'Silver, Golden or family jubilee' },
-    { id: 'birthday', label: 'Grand Birthday', icon: '🎂', desc: '1st, 18th, 50th or milestone bash' },
-    { id: 'community', label: 'Community Festival', icon: '🪔', desc: 'Diwali, Sangeet or cultural Utsav' },
+  const occasionOptions: { id: OccasionType; label: string; icon: React.ReactNode; desc: string }[] = [
+    { 
+      id: 'wedding', 
+      label: 'Indian Wedding', 
+      icon: <Heart className="w-5 h-5" />, 
+      desc: 'Multi-day grand ceremony & reception' 
+    },
+    { 
+      id: 'engagement', 
+      label: 'Engagement / Roka', 
+      icon: <Gem className="w-5 h-5" />, 
+      desc: 'Ring exchange and family gathering' 
+    },
+    { 
+      id: 'anniversary', 
+      label: 'Milestone Anniversary', 
+      icon: <Award className="w-5 h-5" />, 
+      desc: 'Silver, Golden or family jubilee' 
+    },
+    { 
+      id: 'birthday', 
+      label: 'Grand Birthday', 
+      icon: <Cake className="w-5 h-5" />, 
+      desc: '1st, 18th, 50th or milestone celebration' 
+    },
+    { 
+      id: 'community', 
+      label: 'Community Gathering', 
+      icon: <Users className="w-5 h-5" />, 
+      desc: 'Cultural Utsav, Sangeet or festival' 
+    },
   ];
 
   const togglePriority = (key: keyof PrioritySettings) => {
@@ -97,7 +127,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
             id: 'vw-cat',
             category: 'catering',
             title: 'Catering & Dining Worksheet',
-            estimatedBudget: budgetCategories.find(c => c.category === 'catering')?.allocatedAmount || 250000,
+            estimatedBudget: budgetCategories.find(c => c.category === 'catering')?.allocatedAmount || 280000,
             status: 'pending',
             keyRequirements: ['Live food counters', 'Regional traditional delicacies', 'Welcome beverage service'],
             screeningQuestions: ['Is waitstaff included in per plate rate?', 'What is the refund cutoff for headcount drops?'],
@@ -119,7 +149,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
       
       {/* Studio Header */}
       <div className="mb-10 text-center">
-        <span className="text-xs font-bold uppercase tracking-widest text-gold-700">Creation Studio</span>
+        <span className="text-xs font-bold uppercase tracking-widest text-gold-700">Guided Planning Studio</span>
         <h2 className="text-3xl sm:text-4xl font-serif font-bold text-forest-950 mt-1">
           Design Your Celebration
         </h2>
@@ -127,7 +157,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
           Step {step} of 4: {step === 1 && 'Occasion & Dates'}
           {step === 2 && 'Budget & Scale'}
           {step === 3 && 'Sacred Priorities'}
-          {step === 4 && 'AI Synthesis Preview'}
+          {step === 4 && 'Plan Confirmation'}
         </p>
 
         {/* Progress Bar */}
@@ -159,13 +189,19 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                     onClick={() => setOccasion(opt.id)}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
                       occasion === opt.id
-                        ? 'border-gold-500 bg-gold-50 shadow-sm'
-                        : 'border-ivory-300 hover:border-gold-300 hover:bg-ivory-100'
+                        ? 'border-gold-500 bg-gold-50 shadow-sm ring-1 ring-gold-400'
+                        : 'border-ivory-300 bg-white hover:border-gold-300 hover:bg-ivory-100'
                     }`}
                   >
-                    <div className="text-2xl mb-2">{opt.icon}</div>
-                    <div className="font-bold text-forest-950 text-sm">{opt.label}</div>
-                    <div className="text-xs text-charcoal-500 mt-1">{opt.desc}</div>
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors ${
+                      occasion === opt.id ? 'bg-gold-500 text-forest-950' : 'bg-ivory-200 text-charcoal-700'
+                    }`}>
+                      {opt.icon}
+                    </div>
+                    <div>
+                      <div className="font-bold text-forest-950 text-sm">{opt.label}</div>
+                      <div className="text-xs text-charcoal-500 mt-0.5">{opt.desc}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -211,7 +247,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                   type="date"
                   value={targetDate}
                   onChange={e => setTargetDate(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-ivory-300 bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 text-sm"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-ivory-300 bg-white focus:outline-none focus:ring-2 focus:ring-gold-400 text-sm font-semibold text-forest-950"
                 />
               </div>
             </div>
@@ -274,26 +310,28 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
               </div>
             </div>
 
-            {/* Quick Metrics preview card */}
-            <div className="p-5 rounded-2xl bg-forest-950 text-ivory-100 flex items-center justify-between">
+            {/* Metrics Breakdown Card */}
+            <div className="p-5 rounded-2xl bg-forest-950 text-ivory-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="text-xs uppercase tracking-wider text-gold-400 font-semibold">Spend Intensity</span>
                 <div className="text-lg font-serif font-bold mt-0.5">
                   ₹{Math.round(totalBudget / Math.max(guestCount, 1)).toLocaleString('en-IN')} <span className="text-xs font-sans font-normal text-ivory-300">/ attendee</span>
                 </div>
+                <p className="text-[11px] text-ivory-400 mt-0.5">Includes dining, venue and hospitality arrangements.</p>
               </div>
-              <div className="text-right">
-                <span className="text-xs uppercase tracking-wider text-gold-400 font-semibold">Contingency Safety Buffer</span>
+              <div className="sm:text-right pt-3 sm:pt-0 border-t sm:border-t-0 border-forest-800">
+                <span className="text-xs uppercase tracking-wider text-gold-400 font-semibold">5% Contingency Buffer</span>
                 <div className="text-lg font-serif font-bold mt-0.5 text-gold-300">
-                  ₹{Math.round(totalBudget * 0.05).toLocaleString('en-IN')} (5%)
+                  ₹{Math.round(totalBudget * 0.05).toLocaleString('en-IN')}
                 </div>
+                <p className="text-[11px] text-ivory-400 mt-0.5">Reserved safety cushion for emergencies.</p>
               </div>
             </div>
 
           </div>
         )}
 
-        {/* STEP 3: Priority Ranking & Locks */}
+        {/* STEP 3: Sacred Priorities */}
         {step === 3 && (
           <div className="space-y-6">
             <div>
@@ -301,39 +339,34 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                 Sacred Priority Protection
               </h3>
               <p className="text-xs text-charcoal-600 mt-1">
-                Click each category to toggle priority: <strong className="text-emerald-700">HIGH</strong> categories are shielded with protected allocation locks.
+                Click each category to toggle its protection state. Categories marked <strong className="text-emerald-700">PROTECTED</strong> are locked against budget cuts during future plan adjustments.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {(Object.keys(priorities) as (keyof PrioritySettings)[]).map(key => {
                 const level = priorities[key];
                 return (
                   <div
                     key={key}
                     onClick={() => togglePriority(key)}
-                    className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex items-center justify-between ${
+                    className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between ${
                       level === 'high'
-                        ? 'border-emerald-600 bg-emerald-50/50'
+                        ? 'border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-500'
                         : level === 'medium'
-                        ? 'border-gold-400 bg-gold-50/30'
-                        : 'border-ivory-300 bg-white opacity-70'
+                        ? 'border-gold-400 bg-gold-50/40'
+                        : 'border-ivory-300 bg-white hover:border-ivory-400 opacity-80'
                     }`}
                   >
-                    <div>
+                    <div className="flex items-center justify-between mb-2">
                       <div className="font-bold text-sm text-forest-950 capitalize">
                         {key === 'catering' ? 'Catering & Dining' : key === 'decor' ? 'Decor & Florals' : key}
                       </div>
-                      <div className="text-xs text-charcoal-500 capitalize">
-                        Priority: <span className="font-semibold">{level}</span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center space-x-1.5">
                       {level === 'high' ? (
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-700 text-white flex items-center space-x-1">
-                          <Lock className="w-3 h-3" />
-                          <span>Shielded</span>
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Protected</span>
                         </span>
                       ) : level === 'medium' ? (
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gold-200 text-gold-900 border border-gold-300">
@@ -345,6 +378,12 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                         </span>
                       )}
                     </div>
+
+                    <p className="text-[11px] text-charcoal-500">
+                      {level === 'high' && 'Protected: Immune to automated budget cuts when circumstances shift.'}
+                      {level === 'medium' && 'Standard: Balanced allocation with moderate flexibility.'}
+                      {level === 'low' && 'Flexible: First to absorb savings to protect higher-priority needs.'}
+                    </p>
                   </div>
                 );
               })}
@@ -363,7 +402,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                 Ready to Synthesize Celebration Plan
               </h3>
               <p className="text-xs text-charcoal-600 max-w-md mx-auto mt-1">
-                FESTORA will compute transparent deterministic budget allocations, cultural milestones, and call Gemini for tailored theme styling.
+                FESTORA will calculate transparent deterministic budget allocations, schedule cultural milestones, and call Gemini for tailored theme styling.
               </p>
             </div>
 
@@ -373,21 +412,23 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                 <span className="font-bold text-forest-950 capitalize">{occasion} in {city}</span>
               </div>
               <div className="py-2.5 flex justify-between">
-                <span className="text-charcoal-500">Date</span>
-                <span className="font-bold text-forest-950">{targetDate}</span>
+                <span className="text-charcoal-500">Event Date</span>
+                <span className="font-bold text-forest-950">
+                  {new Date(targetDate).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
               </div>
               <div className="py-2.5 flex justify-between">
-                <span className="text-charcoal-500">Total Budget</span>
+                <span className="text-charcoal-500">Target Budget</span>
                 <span className="font-bold text-gold-800">₹{totalBudget.toLocaleString('en-IN')}</span>
               </div>
               <div className="py-2.5 flex justify-between">
-                <span className="text-charcoal-500">Guest Count</span>
+                <span className="text-charcoal-500">Guest Headcount</span>
                 <span className="font-bold text-forest-950">{guestCount} Guests</span>
               </div>
               <div className="py-2.5 flex justify-between">
-                <span className="text-charcoal-500">Shielded Priorities</span>
+                <span className="text-charcoal-500">Protected Priorities</span>
                 <span className="font-bold text-emerald-800">
-                  {Object.entries(priorities).filter(([_, lvl]) => lvl === 'high').map(([k]) => k).join(', ') || 'Standard balanced'}
+                  {Object.entries(priorities).filter(([_, lvl]) => lvl === 'high').map(([k]) => k === 'catering' ? 'Catering' : k.charAt(0).toUpperCase() + k.slice(1)).join(', ') || 'Standard balanced'}
                 </span>
               </div>
             </div>

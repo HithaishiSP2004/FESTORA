@@ -3,7 +3,14 @@ import {
   IndianRupee, 
   Lock, 
   Unlock, 
-  ShieldCheck
+  ShieldCheck,
+  Building,
+  Utensils,
+  Camera,
+  Sparkles,
+  Music,
+  Shirt,
+  Info
 } from 'lucide-react';
 import { EventPlan, BudgetCategory } from '../../types/event';
 
@@ -24,6 +31,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
   const totalCommitted = plan.budgetCategories.reduce((sum, c) => sum + c.committedAmount, 0);
   const bufferCat = plan.budgetCategories.find(c => c.category === 'buffer');
   const bufferAmount = bufferCat?.allocatedAmount || 0;
+  const remainingUncommitted = Math.max(0, plan.totalBudget - totalCommitted);
 
   const isReconciled = totalAllocated === plan.totalBudget;
 
@@ -47,6 +55,18 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
     onUpdateCategories(updated, `Updated committed expenditure`);
   };
 
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'catering': return <Utensils className="w-4 h-4" />;
+      case 'venue': return <Building className="w-4 h-4" />;
+      case 'photography': return <Camera className="w-4 h-4" />;
+      case 'decor': return <Sparkles className="w-4 h-4" />;
+      case 'entertainment': return <Music className="w-4 h-4" />;
+      case 'attire': return <Shirt className="w-4 h-4" />;
+      default: return <ShieldCheck className="w-4 h-4" />;
+    }
+  };
+
   return (
     <div className="space-y-8">
       
@@ -57,18 +77,18 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
             <span className="text-xs uppercase font-bold tracking-wider text-gold-800">
               Explainable Financial Engine
             </span>
-            <h2 className="text-2xl font-serif font-bold text-forest-950 mt-1">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-forest-950 mt-1">
               Budget Allocation Studio
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-600 mt-1">
-              Every estimate features explicit calculation formulas and baseline assumptions. Zero arbitrary guesses.
+              Every figure is derived from explicit mathematical formulas and baseline cultural assumptions.
             </p>
           </div>
 
           <div className="flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-forest-950 text-ivory-100 text-xs font-semibold">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>
-              {isReconciled ? 'Deterministic Reconcile: 100% Balanced' : 'Reconciliation Pending'}
+              {isReconciled ? 'Deterministic Balance: 100% Reconciled' : 'Reconciliation Pending'}
             </span>
           </div>
         </div>
@@ -99,18 +119,48 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
               ₹{totalCommitted.toLocaleString('en-IN')}
             </div>
             <span className="text-[10px] text-charcoal-400">
-              {((totalCommitted / plan.totalBudget) * 100).toFixed(1)}% of total
+              ₹{remainingUncommitted.toLocaleString('en-IN')} remaining
             </span>
           </div>
 
           <div>
-            <span className="text-xs text-charcoal-500">Safety Buffer</span>
+            <span className="text-xs text-charcoal-500">5% Safety Buffer</span>
             <div className="text-xl font-serif font-bold text-forest-900">
               ₹{bufferAmount.toLocaleString('en-IN')}
             </div>
-            <span className="text-[10px] text-gold-800 font-semibold">5% Statutory Reserve</span>
+            <span className="text-[10px] text-gold-800 font-semibold">Statutory Reserve</span>
           </div>
         </div>
+
+        {/* Visual Allocation Stacked Bar */}
+        <div className="mt-6 pt-4 border-t border-ivory-200">
+          <div className="flex justify-between items-center text-xs text-charcoal-500 mb-2 font-medium">
+            <span>Category Budget Share</span>
+            <span>Total: 100%</span>
+          </div>
+          <div className="w-full h-3 rounded-full overflow-hidden flex bg-ivory-200">
+            {plan.budgetCategories.map((cat, idx) => {
+              const colors = [
+                'bg-forest-800',
+                'bg-forest-600',
+                'bg-gold-500',
+                'bg-gold-600',
+                'bg-emerald-700',
+                'bg-emerald-800',
+                'bg-charcoal-600'
+              ];
+              return (
+                <div
+                  key={cat.id}
+                  style={{ width: `${cat.percentageOfTotal}%` }}
+                  className={`${colors[idx % colors.length]} h-full transition-all hover:opacity-80`}
+                  title={`${cat.name}: ${cat.percentageOfTotal}% (₹${cat.allocatedAmount.toLocaleString('en-IN')})`}
+                />
+              );
+            })}
+          </div>
+        </div>
+
       </div>
 
       {/* Main Budget Grid: Category Breakdown + Formula Inspector */}
@@ -136,7 +186,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                   onClick={() => setSelectedCategory(cat)}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-gold-500 bg-gold-50/50 shadow-sm'
+                      ? 'border-gold-500 bg-gold-50/60 shadow-sm ring-1 ring-gold-400'
                       : 'border-ivory-300 bg-white hover:border-gold-300'
                   }`}
                 >
@@ -149,20 +199,24 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                           e.stopPropagation();
                           handleToggleLock(cat.id);
                         }}
-                        title={cat.isLocked ? 'Locked category (Shielded)' : 'Unlocked category'}
-                        className={`p-1.5 rounded-lg text-xs transition-colors ${
+                        title={cat.isLocked ? 'Protected category (Shielded)' : 'Flexible category'}
+                        className={`p-2 rounded-xl text-xs transition-colors ${
                           cat.isLocked
                             ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                            : 'bg-ivory-200 text-charcoal-400 hover:text-charcoal-700'
+                            : 'bg-ivory-200 text-charcoal-500 hover:text-charcoal-800'
                         }`}
                       >
                         {cat.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
                       </button>
 
+                      <div className="p-2 rounded-xl bg-ivory-100 text-forest-900 border border-ivory-200">
+                        {getCategoryIcon(cat.category)}
+                      </div>
+
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-sm text-forest-950">{cat.name}</span>
-                          <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold uppercase tracking-wider ${
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                             cat.costSource === 'user_provided'
                               ? 'bg-blue-100 text-blue-800'
                               : 'bg-ivory-200 text-charcoal-600'
@@ -182,7 +236,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                         ₹{cat.allocatedAmount.toLocaleString('en-IN')}
                       </div>
                       <div className="text-xs text-charcoal-400">
-                        {cat.percentageOfTotal}% of budget
+                        {cat.percentageOfTotal}% of total
                       </div>
                     </div>
 
@@ -192,7 +246,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                   <div className="w-full bg-ivory-200 h-1.5 rounded-full overflow-hidden mt-3">
                     <div
                       className={`h-full rounded-full ${isShielded ? 'bg-emerald-700' : 'bg-gold-500'}`}
-                      style={{ width: `${Math.min(100, cat.percentageOfTotal * 2)}%` }}
+                      style={{ width: `${Math.min(100, cat.percentageOfTotal * 2.2)}%` }}
                     />
                   </div>
                 </div>
@@ -218,14 +272,14 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
 
                 <button
                   onClick={() => handleToggleLock(selectedCategory.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 ${
+                  className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center space-x-1 ${
                     selectedCategory.isLocked
-                      ? 'bg-emerald-100 text-emerald-800'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : 'bg-ivory-200 text-charcoal-600'
                   }`}
                 >
                   {selectedCategory.isLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-                  <span>{selectedCategory.isLocked ? 'Locked' : 'Flexible'}</span>
+                  <span>{selectedCategory.isLocked ? 'Protected' : 'Flexible'}</span>
                 </button>
               </div>
 
@@ -260,10 +314,18 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                 </p>
               </div>
 
+              {/* Cost Provenance Disclaimer */}
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-[11px] text-amber-900 leading-relaxed flex items-start space-x-2">
+                <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                <span>
+                  Estimates represent deterministic planning benchmarks. Real vendor quotes are managed under the Vendor Desk.
+                </span>
+              </div>
+
               {/* Committed Tracker input */}
               <div className="pt-2">
                 <label className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-1.5">
-                  Actual Committed / Contracted Amount (₹)
+                  Actual Booked Contract (₹)
                 </label>
                 <div className="relative">
                   <IndianRupee className="w-4 h-4 text-charcoal-400 absolute left-3 top-3" />
@@ -276,7 +338,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                   />
                 </div>
                 <div className="text-[11px] text-charcoal-400 mt-1 flex justify-between">
-                  <span>Variance vs Allocated:</span>
+                  <span>Variance vs Allocation:</span>
                   <span className={`font-semibold ${
                     selectedCategory.committedAmount > selectedCategory.allocatedAmount
                       ? 'text-red-600'
@@ -284,7 +346,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                   }`}>
                     {selectedCategory.committedAmount > 0
                       ? selectedCategory.committedAmount <= selectedCategory.allocatedAmount
-                        ? `₹${(selectedCategory.allocatedAmount - selectedCategory.committedAmount).toLocaleString('en-IN')} surplus remaining`
+                        ? `₹${(selectedCategory.allocatedAmount - selectedCategory.committedAmount).toLocaleString('en-IN')} remaining`
                         : `₹${(selectedCategory.committedAmount - selectedCategory.allocatedAmount).toLocaleString('en-IN')} over budget`
                       : 'No contract signed yet'}
                   </span>

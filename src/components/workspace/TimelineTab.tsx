@@ -1,7 +1,8 @@
 import React from 'react';
 import { 
   CheckCircle2, 
-  Link2
+  Link2,
+  AlertTriangle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { EventPlan } from '../../types/event';
@@ -30,6 +31,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
 
   const totalTasks = plan.milestones.length;
   const completedTasks = plan.milestones.filter(m => m.isCompleted).length;
+  const now = new Date().getTime();
 
   return (
     <div className="space-y-8">
@@ -41,7 +43,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
             <span className="text-xs uppercase font-bold tracking-wider text-gold-800">
               Preparation Roadmap
             </span>
-            <h2 className="text-2xl font-serif font-bold text-forest-950 mt-1">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-forest-950 mt-1">
               Smart Milestone Timeline
             </h2>
             <p className="text-xs sm:text-sm text-charcoal-600 mt-1">
@@ -67,6 +69,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
       <div className="relative pl-6 sm:pl-8 border-l-2 border-gold-300/80 space-y-6 ml-3 sm:ml-6">
         {plan.milestones.map(milestone => {
           const isDone = milestone.isCompleted;
+          const isOverdue = !isDone && milestone.calculatedDate && new Date(milestone.calculatedDate).getTime() < now;
 
           return (
             <div
@@ -74,6 +77,8 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
               className={`relative bg-ivory-50 rounded-2xl p-5 border transition-all ${
                 isDone
                   ? 'border-emerald-200 bg-emerald-50/30 opacity-80'
+                  : isOverdue
+                  ? 'border-amber-300 bg-amber-50/40 shadow-soft-editorial'
                   : 'border-ivory-300 hover:border-gold-400 shadow-soft-editorial'
               }`}
             >
@@ -100,6 +105,12 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
                     {milestone.priority === 'high' && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-100 text-red-800">
                         Critical Path
+                      </span>
+                    )}
+                    {isOverdue && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-900 flex items-center space-x-0.5">
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        <span>Action Due</span>
                       </span>
                     )}
                     {isDone && (
@@ -138,7 +149,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
 
                   <button
                     onClick={() => handleToggle(milestone.id, isDone)}
-                    className={`mt-2 px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                    className={`mt-2 px-3 py-1 rounded-xl text-xs font-semibold transition-colors ${
                       isDone
                         ? 'bg-ivory-200 text-charcoal-600 hover:bg-ivory-300'
                         : 'bg-forest-900 text-ivory-100 hover:bg-forest-800'
