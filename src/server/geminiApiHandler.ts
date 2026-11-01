@@ -118,6 +118,19 @@ function getClientIp(req: IncomingMessage): string {
 }
 
 function parseJsonBody(req: IncomingMessage): Promise<any> {
+  // If running in Vercel Serverless environment where req.body is pre-parsed
+  if ((req as any).body) {
+    if (typeof (req as any).body === 'string') {
+      try {
+        return Promise.resolve(JSON.parse((req as any).body));
+      } catch {
+        return Promise.resolve({});
+      }
+    }
+    return Promise.resolve((req as any).body);
+  }
+
+  // Otherwise, stream-parse in standard Node / Vite dev server environment
   return new Promise((resolve, reject) => {
     let data = '';
     req.on('data', chunk => { data += chunk; });
@@ -133,6 +146,12 @@ function parseJsonBody(req: IncomingMessage): Promise<any> {
 }
 
 function sendJson(res: ServerResponse, statusCode: number, data: any) {
+  // Support both Vercel Serverless response helper and standard Node.js ServerResponse
+  if (typeof (res as any).status === 'function' && typeof (res as any).json === 'function') {
+    (res as any).status(statusCode).json(data);
+    return;
+  }
+
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
