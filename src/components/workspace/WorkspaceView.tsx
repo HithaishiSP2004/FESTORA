@@ -105,9 +105,17 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
       />
 
       {/* Navigation Tabs Bar */}
-      <div className="flex border-b border-ivory-300 overflow-x-auto gap-2 sm:gap-4 no-scrollbar">
-        
+      <div 
+        role="tablist" 
+        aria-label="Celebration workspace views"
+        className="flex border-b border-ivory-300 overflow-x-auto gap-2 sm:gap-4 no-scrollbar"
+      >
         <button
+          role="tab"
+          id="tab-overview"
+          aria-selected={activeTab === 'overview'}
+          aria-controls="panel-overview"
+          tabIndex={activeTab === 'overview' ? 0 : -1}
           onClick={() => setActiveTab('overview')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'overview'
@@ -115,11 +123,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
-          <LayoutDashboard className="w-4 h-4 text-gold-600" />
+          <LayoutDashboard className="w-4 h-4 text-gold-600" aria-hidden="true" />
           <span>Celebration Overview</span>
         </button>
 
         <button
+          role="tab"
+          id="tab-budget"
+          aria-selected={activeTab === 'budget'}
+          aria-controls="panel-budget"
+          tabIndex={activeTab === 'budget' ? 0 : -1}
           onClick={() => setActiveTab('budget')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'budget'
@@ -127,11 +140,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
-          <IndianRupee className="w-4 h-4 text-gold-600" />
+          <IndianRupee className="w-4 h-4 text-gold-600" aria-hidden="true" />
           <span>Explainable Budget Studio</span>
         </button>
 
         <button
+          role="tab"
+          id="tab-timeline"
+          aria-selected={activeTab === 'timeline'}
+          aria-controls="panel-timeline"
+          tabIndex={activeTab === 'timeline' ? 0 : -1}
           onClick={() => setActiveTab('timeline')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'timeline'
@@ -139,11 +157,16 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
-          <Calendar className="w-4 h-4 text-gold-600" />
+          <Calendar className="w-4 h-4 text-gold-600" aria-hidden="true" />
           <span>Smart Timeline</span>
         </button>
 
         <button
+          role="tab"
+          id="tab-vendors"
+          aria-selected={activeTab === 'vendors'}
+          aria-controls="panel-vendors"
+          tabIndex={activeTab === 'vendors' ? 0 : -1}
           onClick={() => setActiveTab('vendors')}
           className={`pb-3.5 pt-1 px-3.5 text-xs sm:text-sm font-bold transition-all flex items-center space-x-2 border-b-2 shrink-0 rounded-t-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
             activeTab === 'vendors'
@@ -151,7 +174,7 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
               : 'border-transparent text-charcoal-500 hover:text-forest-900 hover:bg-ivory-200/50'
           }`}
         >
-          <Briefcase className="w-4 h-4 text-gold-600" />
+          <Briefcase className="w-4 h-4 text-gold-600" aria-hidden="true" />
           <span>Vendor Desk</span>
         </button>
 
@@ -159,34 +182,62 @@ export const WorkspaceView: React.FC<WorkspaceViewProps> = ({
 
       {/* Tab Contents */}
       <div>
-        {activeTab === 'overview' && (
-          <OverviewTab
-            plan={plan}
-            onNavigateTab={tab => setActiveTab(tab)}
-          />
-        )}
+        <div
+          role="tabpanel"
+          id="panel-overview"
+          aria-labelledby="tab-overview"
+          hidden={activeTab !== 'overview'}
+        >
+          {activeTab === 'overview' && (
+            <OverviewTab
+              plan={plan}
+              onNavigateTab={tab => setActiveTab(tab)}
+            />
+          )}
+        </div>
 
-        {activeTab === 'budget' && (
-          <BudgetStudioTab
-            plan={plan}
-            onUpdateCategories={handleUpdateCategories}
-          />
-        )}
+        <div
+          role="tabpanel"
+          id="panel-budget"
+          aria-labelledby="tab-budget"
+          hidden={activeTab !== 'budget'}
+        >
+          {activeTab === 'budget' && (
+            <BudgetStudioTab
+              plan={plan}
+              onUpdateCategories={handleUpdateCategories}
+            />
+          )}
+        </div>
 
-        {activeTab === 'timeline' && (
-          <TimelineTab
-            plan={plan}
-            onToggleMilestone={handleToggleMilestone}
-          />
-        )}
+        <div
+          role="tabpanel"
+          id="panel-timeline"
+          aria-labelledby="tab-timeline"
+          hidden={activeTab !== 'timeline'}
+        >
+          {activeTab === 'timeline' && (
+            <TimelineTab
+              plan={plan}
+              onToggleMilestone={handleToggleMilestone}
+            />
+          )}
+        </div>
 
-        {activeTab === 'vendors' && (
-          <VendorDeskTab
-            plan={plan}
-            onUpdateVendorWorksheets={handleUpdateVendorWorksheets}
-            onCommitVendorQuote={handleCommitVendorQuote}
-          />
-        )}
+        <div
+          role="tabpanel"
+          id="panel-vendors"
+          aria-labelledby="tab-vendors"
+          hidden={activeTab !== 'vendors'}
+        >
+          {activeTab === 'vendors' && (
+            <VendorDeskTab
+              plan={plan}
+              onUpdateVendorWorksheets={handleUpdateVendorWorksheets}
+              onCommitVendorQuote={handleCommitVendorQuote}
+            />
+          )}
+        </div>
       </div>
 
       {/* Modals */}

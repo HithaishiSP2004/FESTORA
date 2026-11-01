@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { BudgetEngine } from '../engine/budgetEngine';
 import { TimelineEngine } from '../engine/timelineEngine';
 import { ChangeDiffEngine } from '../engine/changeDiffEngine';
@@ -8,7 +9,8 @@ import {
   ConceptOutputSchema, 
   AdaptOutputSchema,
   GenerateConceptRequestSchema,
-  AdaptPlanRequestSchema
+  AdaptPlanRequestSchema,
+  handleAiGenerate
 } from '../server/geminiApiHandler';
 import { EventPlan } from '../types/event';
 import { AiService } from '../services/aiService';
@@ -216,7 +218,7 @@ describe('FESTORA Core Architecture Test Suite', () => {
     const restored = EventStorage.rollbackToSnapshot(initialPlan.id, snapId);
     expect(restored).not.toBeNull();
     expect(restored!.totalBudget).toBe(800000);
-    expect(restored!.version).toBe(2); // Incremented audit version
+    expect(restored!.version).toBe(3); // Monotonically incremented past version 2 to avoid collision
   });
 
   // TEST 10: Infeasible budget scenario
@@ -415,6 +417,80 @@ describe('FESTORA Core Architecture Test Suite', () => {
       }
     });
     expect(malformedAdaptResult.success).toBe(false);
+  });
+
+  // TEST 16: LocalStorage corruption resilience and fallback
+  it('16. LocalStorage corruption or malformed structure safely recovers to default baseline plan', () => {
+    // Write corrupted non-JSON string
+    localStorage.setItem('festora_current_plan_v1', '{ corrupt-data: invalid-json');
+    const recoveredPlan = EventStorage.loadActivePlan();
+    expect(recoveredPlan.id).toBe(INDIAN_WEDDING_PRESET.id);
+
+    // Write incomplete object missing required categories array
+    localStorage.setItem('festora_current_plan_v1', JSON.stringify({ id: 'dummy', title: 'Corrupted' }));
+    const recoveredPlan2 = EventStorage.loadActivePlan();
+    expect(recoveredPlan2.id).toBe(INDIAN_WEDDING_PRESET.id);
+  });
+
+  // TEST 17: Forward-tracking snapshot restoration
+  it('17. Snapshot rollback restores previous state while advancing version tracking monotonically', () => {
+    const basePlan = JSON.parse(JSON.stringify(INDIAN_WEDDING_PRESET)) as EventPlan;
+    const initialSnap = EventStorage.recordSnapshot(basePlan, 'Baseline snapshot');
+
+    // Adapt plan
+    const adaptedPlan: EventPlan = {
+      ...basePlan,
+      version: 2,
+      totalBudget: 700000,
+      guestCount: 180
+    };
+    EventStorage.savePlan(adaptedPlan, 'Reduced budget');
+
+    // Rollback to initial snapshot
+    const restored = EventStorage.rollbackToSnapshot(basePlan.id, initialSnap.snapshotId);
+    expect(restored).not.toBeNull();
+    // Restored values match original baseline
+    expect(restored!.totalBudget).toBe(800000);
+    expect(restored!.guestCount).toBe(200);
+    // Version monotonically advances (version 2 -> 3) rather than traveling backward
+    expect(restored!.version).toBe(3);
+  });
+
+  // TEST 18: Serverless API Handler HTTP Method & Schema integration
+  it('18. API Handler rejects GET requests with HTTP 405 and validates real plan adaptation payload', async () => {
+    let statusCode = 200;
+    let responseData = '';
+    const mockReq = {
+      method: 'GET',
+      headers: {},
+      socket: { remoteAddress: '127.0.0.1' },
+    } as unknown as IncomingMessage;
+
+    const mockRes = {
+      writeHead: (code: number) => { statusCode = code; },
+      end: (data?: string) => { if (data) responseData = data; },
+      status: (code: number) => {
+        statusCode = code;
+        return {
+          json: (data: unknown) => { responseData = JSON.stringify(data); }
+        };
+      }
+    } as unknown as ServerResponse;
+
+    await handleAiGenerate(mockReq, mockRes);
+    expect(statusCode).toBe(405);
+    expect(JSON.parse(responseData)).toEqual({ error: 'Method Not Allowed. Use POST.' });
+
+    // Verify valid real plan schema parsing
+    const validAdaptResult = AdaptPlanRequestSchema.safeParse({
+      changePrompt: 'Adjust budget to ₹7.5L',
+      previousPlan: INDIAN_WEDDING_PRESET,
+      proposedChanges: {
+        newBudget: 750000,
+        newGuestCount: 220
+      }
+    });
+    expect(validAdaptResult.success).toBe(true);
   });
 
 });

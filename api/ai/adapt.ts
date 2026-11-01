@@ -11,6 +11,15 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     res.end();
     return;
   }
+
+  if (req.method !== 'POST') {
+    res.writeHead(405, {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.end(JSON.stringify({ error: 'Method Not Allowed. Use POST.' }));
+    return;
+  }
+
   await handleAiAdapt(req, res);
 }
-

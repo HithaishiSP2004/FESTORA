@@ -72,16 +72,19 @@ export const GenerateConceptRequestSchema = z.object({
 
 export const BudgetCategorySchema = z.object({
   id: z.string(),
-  category: z.string(),
   name: z.string(),
+  category: z.enum(['venue', 'catering', 'decor', 'photography', 'entertainment', 'attire', 'buffer']),
   allocatedAmount: z.number(),
-  targetPercentage: z.number(),
-  isPriority: z.boolean(),
-  isFlexible: z.boolean(),
-  isLocked: z.boolean().optional(),
-  compromiseNote: z.string().optional(),
-  committedAmount: z.number().optional(),
-  notes: z.string().optional(),
+  committedAmount: z.number().default(0),
+  percentageOfTotal: z.number(),
+  priority: z.enum(['high', 'medium', 'low']),
+  isLocked: z.boolean(),
+  costSource: z.enum(['system_estimated', 'user_provided']).default('system_estimated'),
+  calculationBasis: z.string(),
+  assumptions: z.string().optional().default(''),
+  costPerUnit: z.number().optional(),
+  unitLabel: z.string().optional(),
+  unitCount: z.number().optional(),
 });
 
 export const AdaptPlanRequestSchema = z.object({
@@ -332,6 +335,11 @@ function getFallbackAdaptation(
  * Handle POST /api/ai/generate
  */
 export async function handleAiGenerate(req: IncomingMessage, res: ServerResponse) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Method Not Allowed. Use POST.' });
+    return;
+  }
+
   const ip = getClientIp(req);
   if (!checkRateLimit(ip)) {
     sendJson(res, 429, { error: 'Rate limit exceeded. Please wait a minute.' });
@@ -414,6 +422,11 @@ Respond ONLY with a JSON object matching this schema:
  * Handle POST /api/ai/adapt
  */
 export async function handleAiAdapt(req: IncomingMessage, res: ServerResponse) {
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Method Not Allowed. Use POST.' });
+    return;
+  }
+
   const ip = getClientIp(req);
   if (!checkRateLimit(ip)) {
     sendJson(res, 429, { error: 'Rate limit exceeded. Please wait a minute.' });

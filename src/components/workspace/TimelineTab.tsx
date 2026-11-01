@@ -193,6 +193,7 @@ export const TimelineTab: React.FC<TimelineTabProps> = ({
                 <button
                   type="button"
                   onClick={() => handleToggle(milestone.id, isDone)}
+                  aria-label={`Mark milestone "${milestone.title}" as ${isDone ? 'incomplete' : 'completed'}`}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-gold-400 ${
                     isDone
                       ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300'

@@ -13,8 +13,19 @@ export class EventStorage {
       const serialized = localStorage.getItem(CURRENT_PLAN_KEY);
       if (serialized) {
         const parsed = JSON.parse(serialized);
-        if (parsed && parsed.id && parsed.budgetCategories) {
-          return parsed;
+        // Robust structural validation: ensure core properties and arrays exist
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof parsed.id === 'string' &&
+          typeof parsed.title === 'string' &&
+          typeof parsed.totalBudget === 'number' &&
+          typeof parsed.guestCount === 'number' &&
+          Array.isArray(parsed.budgetCategories) &&
+          Array.isArray(parsed.milestones) &&
+          parsed.budgetCategories.length > 0
+        ) {
+          return parsed as EventPlan;
         }
       }
     } catch (e) {
@@ -91,10 +102,11 @@ export class EventStorage {
     const target = snapshots.find(s => s.snapshotId === snapshotId);
     if (!target) return null;
 
-    // Increment version upon restore so history is forward-tracking
+    // Find highest version across all existing snapshots to advance monotonically without version collisions
+    const maxVersion = snapshots.reduce((max, s) => Math.max(max, s.version), target.plan.version);
     const restoredPlan: EventPlan = {
       ...JSON.parse(JSON.stringify(target.plan)),
-      version: target.plan.version + 1,
+      version: maxVersion + 1,
       updatedAt: new Date().toISOString()
     };
 

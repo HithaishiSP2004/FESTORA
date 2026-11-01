@@ -195,8 +195,18 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
               return (
                 <div
                   key={cat.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`Select category ${cat.name}. Allocated: ₹${cat.allocatedAmount.toLocaleString('en-IN')}`}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedCategory(cat);
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500/60 ${
                     isSelected
                       ? 'border-gold-500 bg-gold-50/70 shadow-sm ring-1 ring-gold-400'
                       : 'border-ivory-300 bg-white hover:border-gold-300 shadow-soft-editorial'
@@ -212,6 +222,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                           e.stopPropagation();
                           handleToggleLock(cat.id);
                         }}
+                        aria-label={cat.isLocked ? `Unlock category ${cat.name}` : `Lock category ${cat.name} to protect against cuts`}
                         title={cat.isLocked ? 'Protected category (Shielded)' : 'Flexible category'}
                         className={`p-2 rounded-xl text-xs transition-colors focus:outline-none focus:ring-1 focus:ring-gold-400 ${
                           cat.isLocked
@@ -219,7 +230,7 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
                             : 'bg-ivory-200 text-charcoal-500 hover:text-charcoal-800'
                         }`}
                       >
-                        {cat.isLocked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                        {cat.isLocked ? <Lock className="w-3.5 h-3.5" aria-hidden="true" /> : <Unlock className="w-3.5 h-3.5" aria-hidden="true" />}
                       </button>
 
                       <div className="p-2 rounded-xl bg-ivory-100 text-forest-900 border border-ivory-200">
@@ -347,12 +358,16 @@ export const BudgetStudioTab: React.FC<BudgetStudioTabProps> = ({
 
               {/* Committed Tracker input */}
               <div className="pt-2">
-                <label className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-1.5">
+                <label 
+                  htmlFor="booked-contract-input" 
+                  className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-1.5"
+                >
                   Actual Booked Contract (₹)
                 </label>
                 <div className="relative">
-                  <IndianRupee className="w-4 h-4 text-charcoal-400 absolute left-3 top-3" />
+                  <IndianRupee className="w-4 h-4 text-charcoal-400 absolute left-3 top-3" aria-hidden="true" />
                   <input
+                    id="booked-contract-input"
                     type="number"
                     min="0"
                     value={selectedCategory.committedAmount || ''}
