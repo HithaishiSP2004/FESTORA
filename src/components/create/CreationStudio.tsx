@@ -13,9 +13,10 @@ import {
   Users,
   ShieldCheck
 } from 'lucide-react';
-import { EventPlan, OccasionType, PriorityLevel, PrioritySettings, BudgetCategory, VendorWorksheet } from '../../types/event';
+import { EventPlan, OccasionType, PriorityLevel, PrioritySettings } from '../../types/event';
 import { BudgetEngine } from '../../engine/budgetEngine';
 import { TimelineEngine } from '../../engine/timelineEngine';
+import { generateRealisticVendorWorksheets } from '../../engine/culturalTemplates';
 import { AiService } from '../../services/aiService';
 import { Rupee } from '../common/Rupee';
 
@@ -24,147 +25,13 @@ interface CreationStudioProps {
   onCancel: () => void;
 }
 
-function generateRealisticVendorWorksheets(
-  city: string,
-  budgetCategories: BudgetCategory[]
-): VendorWorksheet[] {
-  const cateringAlloc = budgetCategories.find(c => c.category === 'catering')?.allocatedAmount || 200000;
-  const venueAlloc = budgetCategories.find(c => c.category === 'venue')?.allocatedAmount || 150000;
-  const decorAlloc = budgetCategories.find(c => c.category === 'decor')?.allocatedAmount || 80000;
-  const photoAlloc = budgetCategories.find(c => c.category === 'photography')?.allocatedAmount || 60000;
-
-  const cityName = city ? city.charAt(0).toUpperCase() + city.slice(1) : 'Bangalore';
-
-  return [
-    {
-      id: 'vw-catering',
-      category: 'catering',
-      title: 'Catering & Dining Worksheet',
-      estimatedBudget: cateringAlloc,
-      status: 'reviewing',
-      keyRequirements: [
-        'Multi-course regional specialty menu & live counters',
-        'Welcome beverages, mocktail bar & dessert spread',
-        'Uniformed waitstaff, setup & cleanup included'
-      ],
-      screeningQuestions: [
-        'Is mineral water and welcome beverage service included in per-plate rate?',
-        'What is your cancellation policy if headcount changes 7 days prior?',
-        'Do you provide live food counter chefs and cleanup personnel?'
-      ],
-      quotes: [
-        {
-          id: `q-cat-1-${Date.now()}`,
-          vendorName: `${cityName} Artisanal Feasts & Banquets`,
-          quotedAmount: Math.round(cateringAlloc * 0.95),
-          packageDetails: 'Full celebratory buffet with 3 live counters, mocktail bar, and personalized dessert studio.',
-          pros: ['Exemplary food tasting rating', 'Eco-friendly tableware', 'Dedicated on-site manager'],
-          cons: ['Requires 40% advance deposit at signing'],
-          isShortlisted: true
-        },
-        {
-          id: `q-cat-2-${Date.now() + 1}`,
-          vendorName: 'Royal Spice Caterers & Events',
-          quotedAmount: Math.round(cateringAlloc * 1.05),
-          packageDetails: 'Grand regional feast spread with 4 live stations and premium dessert fountain.',
-          pros: ['Generous portion sizes', 'Extensive multi-cuisine menu options'],
-          cons: [`Exceeds planning benchmark by ₹${Math.round(cateringAlloc * 0.05).toLocaleString('en-IN')}`],
-          isShortlisted: false
-        }
-      ]
-    },
-    {
-      id: 'vw-venue',
-      category: 'venue',
-      title: 'Celebration Venue & Banquet Hall',
-      estimatedBudget: venueAlloc,
-      status: 'reviewing',
-      keyRequirements: [
-        'Air-conditioned banquet or lush open lawn with backup generator',
-        'Dedicated parking and valet coordination',
-        'Ample green rooms / dressing suites for hosts'
-      ],
-      screeningQuestions: [
-        'Are generator and AC power backup charges included in the base rental?',
-        'What is the permitted music curfew and sound cutoff hour?',
-        'Is outside catering and decor permitted without penalty fee?'
-      ],
-      quotes: [
-        {
-          id: `q-ven-1-${Date.now() + 2}`,
-          vendorName: `${cityName} Heritage Garden & Banquets`,
-          quotedAmount: Math.round(venueAlloc * 0.96),
-          packageDetails: 'Full-day access, climate-controlled main hall, green lawn, 2 bridal suites, backup generator.',
-          pros: ['Convenient central location', 'Ample valet parking capacity'],
-          cons: ['Teardown must conclude strictly by 11:30 PM'],
-          isShortlisted: false
-        }
-      ]
-    },
-    {
-      id: 'vw-decor',
-      category: 'decor',
-      title: 'Styling, Florals & Ambient Scenography',
-      estimatedBudget: decorAlloc,
-      status: 'reviewing',
-      keyRequirements: [
-        'Custom ceremonial backdrop and entrance floral arch',
-        'Ambient warm fairy-light canopy and table centerpieces',
-        'Eco-friendly seasonal florals and props'
-      ],
-      screeningQuestions: [
-        'Are heavy power generator cabling and setup labor included?',
-        'How many hours prior to ceremony commencement will decor be 100% ready?',
-        'Do you provide safety fire clearance for ceremonial candles or lamps?'
-      ],
-      quotes: [
-        {
-          id: `q-dec-1-${Date.now() + 3}`,
-          vendorName: 'Aura Floral & Event Stylists',
-          quotedAmount: Math.round(decorAlloc * 0.98),
-          packageDetails: 'Entrance floral styling, stage backdrop with brass fixtures, ambient lighting and seating decor.',
-          pros: ['Prompt setup 3 hours before start', 'Fresh local blooms sourced morning-of'],
-          cons: ['Extra charge for overnight teardown'],
-          isShortlisted: false
-        }
-      ]
-    },
-    {
-      id: 'vw-photography',
-      category: 'photography',
-      title: 'Candid Photography & Cinematography',
-      estimatedBudget: photoAlloc,
-      status: 'reviewing',
-      keyRequirements: [
-        '1 Senior Candid Photographer + 1 Cinematic Videographer',
-        'Teaser highlight reel (60 seconds) within 72 hours',
-        'High-resolution raw image drive + 1 Premium photo album'
-      ],
-      screeningQuestions: [
-        'What is the guaranteed turnaround for edited video and album proofing?',
-        'Are crew travel, food, and drone permits included in the package?',
-        'Can we review unedited raw photos before final album selection?'
-      ],
-      quotes: [
-        {
-          id: `q-pho-1-${Date.now() + 4}`,
-          vendorName: 'Lumière Memories & Films',
-          quotedAmount: Math.round(photoAlloc * 0.95),
-          packageDetails: 'Full ceremony coverage, 2 photographers, cinematic highlight reel, 200 edited images, deluxe album.',
-          pros: ['Award-winning candid capture style', 'Quick 48-hour social media teaser'],
-          cons: ['Full album print delivery takes 3-4 weeks'],
-          isShortlisted: false
-        }
-      ]
-    }
-  ];
-}
+type WizardStep = 1 | 2 | 3 | 4;
 
 export const CreationStudio: React.FC<CreationStudioProps> = ({
   onPlanCreated,
   onCancel,
 }) => {
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<WizardStep>(1);
 
   // Form State
   const [occasion, setOccasion] = useState<OccasionType>('wedding');
@@ -184,6 +51,14 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
   });
 
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const handlePrevStep = () => {
+    setStep(s => (s === 4 ? 3 : s === 3 ? 2 : s === 2 ? 1 : 1));
+  };
+
+  const handleNextStep = () => {
+    setStep(s => (s === 1 ? 2 : s === 2 ? 3 : s === 3 ? 4 : 4));
+  };
 
   const occasionOptions: { id: OccasionType; label: string; icon: React.ReactNode; desc: string }[] = [
     { 
@@ -232,7 +107,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
         city,
         totalBudget,
         guestCount,
-        priorities: priorities as unknown as Record<string, string>,
+        priorities,
       });
 
       const budgetCategories = BudgetEngine.calculateInitialBudget({
@@ -331,7 +206,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
         </p>
 
         {/* Progress Bar */}
-        <div className="flex justify-center items-center space-x-2 mt-4 max-w-xs mx-auto">
+        <div className="flex justify-center items-center space-x-2 mt-4 max-w-xs mx-auto" aria-hidden="true">
           {[1, 2, 3, 4].map(s => (
             <div
               key={s}
@@ -349,40 +224,60 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
         {step === 1 && (
           <div className="space-y-8">
             <div>
-              <label className="block text-sm font-bold text-forest-950 mb-3">
+              <label id="occasion-group-label" className="block text-sm font-bold text-forest-950 mb-3">
                 Select Your Celebration Occasion
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {occasionOptions.map(opt => (
-                  <div
-                    key={opt.id}
-                    onClick={() => setOccasion(opt.id)}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
-                      occasion === opt.id
-                        ? 'border-gold-500 bg-gold-50 shadow-sm ring-1 ring-gold-400'
-                        : 'border-ivory-300 bg-white hover:border-gold-300 hover:bg-ivory-100'
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors ${
-                      occasion === opt.id ? 'bg-gold-500 text-forest-950' : 'bg-ivory-200 text-charcoal-700'
-                    }`}>
-                      {opt.icon}
+              <div 
+                role="radiogroup" 
+                aria-labelledby="occasion-group-label" 
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+              >
+                {occasionOptions.map(opt => {
+                  const isSelected = occasion === opt.id;
+                  return (
+                    <div
+                      key={opt.id}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
+                      onClick={() => setOccasion(opt.id)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setOccasion(opt.id);
+                        }
+                      }}
+                      className={`p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-gold-500 ${
+                        isSelected
+                          ? 'border-gold-500 bg-gold-50 shadow-sm ring-1 ring-gold-400'
+                          : 'border-ivory-300 bg-white hover:border-gold-300 hover:bg-ivory-100'
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors ${
+                        isSelected ? 'bg-gold-500 text-forest-950' : 'bg-ivory-200 text-charcoal-700'
+                      }`}>
+                        {opt.icon}
+                      </div>
+                      <div>
+                        <div className="font-bold text-forest-950 text-sm">{opt.label}</div>
+                        <div className="text-xs text-charcoal-500 mt-0.5">{opt.desc}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-forest-950 text-sm">{opt.label}</div>
-                      <div className="text-xs text-charcoal-500 mt-0.5">{opt.desc}</div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-2">
+                <label 
+                  htmlFor="celebration-title" 
+                  className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-2"
+                >
                   Celebration Title (Optional)
                 </label>
                 <input
+                  id="celebration-title"
                   type="text"
                   placeholder="e.g. Diya & Kabir's Heritage Wedding"
                   value={title}
@@ -392,12 +287,16 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-2">
+                <label 
+                  htmlFor="host-city" 
+                  className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-2"
+                >
                   Host City / Region
                 </label>
                 <div className="relative">
-                  <MapPin className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-3.5" />
+                  <MapPin className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-3.5" aria-hidden="true" />
                   <input
+                    id="host-city"
                     type="text"
                     value={city}
                     onChange={e => setCity(e.target.value)}
@@ -408,12 +307,16 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-2">
+              <label 
+                htmlFor="target-date" 
+                className="block text-xs font-bold text-forest-950 uppercase tracking-wider mb-2"
+              >
                 Target Celebration Date
               </label>
               <div className="relative max-w-sm">
-                <Calendar className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-3.5" />
+                <Calendar className="w-4 h-4 text-charcoal-400 absolute left-3.5 top-3.5" aria-hidden="true" />
                 <input
+                  id="target-date"
                   type="date"
                   value={targetDate}
                   onChange={e => setTargetDate(e.target.value)}
@@ -431,7 +334,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
             {/* Total Budget */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-bold text-forest-950">
+                <label htmlFor="target-budget-slider" className="text-sm font-bold text-forest-950">
                   Target Expenditure Budget
                 </label>
                 <span className="text-xl font-serif font-bold text-gold-700">
@@ -439,15 +342,21 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                 </span>
               </div>
               <input
+                id="target-budget-slider"
                 type="range"
                 min={100000}
                 max={5000000}
                 step={25000}
                 value={totalBudget}
+                aria-label="Target Expenditure Budget"
+                aria-valuemin={100000}
+                aria-valuemax={5000000}
+                aria-valuenow={totalBudget}
+                aria-valuetext={`₹${totalBudget.toLocaleString('en-IN')}`}
                 onChange={e => setTotalBudget(Number(e.target.value))}
                 className="w-full accent-forest-900 cursor-pointer h-2 bg-ivory-300 rounded-lg"
               />
-              <div className="flex justify-between text-xs text-charcoal-400 mt-1">
+              <div className="flex justify-between text-xs text-charcoal-400 mt-1" aria-hidden="true">
                 <span>₹1 Lakh</span>
                 <span>₹25 Lakhs</span>
                 <span>₹50 Lakhs</span>
@@ -457,7 +366,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
             {/* Guest Count */}
             <div>
               <div className="flex justify-between items-center mb-2">
-                <label className="text-sm font-bold text-forest-950">
+                <label htmlFor="guest-count-slider" className="text-sm font-bold text-forest-950">
                   Expected Guest Headcount
                 </label>
                 <span className="text-xl font-serif font-bold text-forest-900">
@@ -465,15 +374,21 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                 </span>
               </div>
               <input
+                id="guest-count-slider"
                 type="range"
                 min={20}
                 max={1000}
                 step={10}
                 value={guestCount}
+                aria-label="Expected Guest Headcount"
+                aria-valuemin={20}
+                aria-valuemax={1000}
+                aria-valuenow={guestCount}
+                aria-valuetext={`${guestCount} guests`}
                 onChange={e => setGuestCount(Number(e.target.value))}
                 className="w-full accent-forest-900 cursor-pointer h-2 bg-ivory-300 rounded-lg"
               />
-              <div className="flex justify-between text-xs text-charcoal-400 mt-1">
+              <div className="flex justify-between text-xs text-charcoal-400 mt-1" aria-hidden="true">
                 <span>20 (Intimate)</span>
                 <span>250 (Traditional)</span>
                 <span>1000 (Grand)</span>
@@ -516,11 +431,22 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               {(Object.keys(priorities) as (keyof PrioritySettings)[]).map(key => {
                 const level = priorities[key];
+                const readableTitle = key === 'catering' ? 'Catering & Dining' : key === 'decor' ? 'Decor & Florals' : key.charAt(0).toUpperCase() + key.slice(1);
                 return (
                   <div
                     key={key}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={level === 'high'}
+                    aria-label={`Toggle priority protection for ${readableTitle}. Currently ${level}.`}
                     onClick={() => togglePriority(key)}
-                    className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between ${
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        togglePriority(key);
+                      }
+                    }}
+                    className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-gold-500 ${
                       level === 'high'
                         ? 'border-emerald-600 bg-emerald-50/60 shadow-sm ring-1 ring-emerald-500'
                         : level === 'medium'
@@ -530,12 +456,12 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="font-bold text-sm text-forest-950 capitalize">
-                        {key === 'catering' ? 'Catering & Dining' : key === 'decor' ? 'Decor & Florals' : key}
+                        {readableTitle}
                       </div>
 
                       {level === 'high' ? (
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-700 text-white flex items-center space-x-1">
-                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
                           <span>Protected</span>
                         </span>
                       ) : level === 'medium' ? (
@@ -566,7 +492,7 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
           <div className="space-y-6">
             <div className="text-center py-4">
               <div className="w-12 h-12 rounded-full bg-gold-100 text-gold-700 mx-auto flex items-center justify-center mb-3">
-                <Sparkles className="w-6 h-6" />
+                <Sparkles className="w-6 h-6" aria-hidden="true" />
               </div>
               <h3 className="text-xl font-serif font-bold text-forest-950">
                 Ready to Synthesize Celebration Plan
@@ -609,17 +535,17 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
         <div className="mt-8 pt-6 border-t border-ivory-300 flex justify-between items-center">
           {step > 1 ? (
             <button
-              onClick={() => setStep(s => (s - 1) as any)}
+              onClick={handlePrevStep}
               disabled={isGenerating}
-              className="px-4 py-2.5 rounded-xl border border-ivory-300 text-charcoal-700 hover:bg-ivory-200 text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-ivory-300 text-charcoal-700 hover:bg-ivory-200 text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-gold-500"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               <span>Back</span>
             </button>
           ) : (
             <button
               onClick={onCancel}
-              className="px-4 py-2.5 rounded-xl text-charcoal-500 hover:text-charcoal-800 text-xs sm:text-sm font-medium"
+              className="px-4 py-2.5 rounded-xl text-charcoal-500 hover:text-charcoal-800 text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gold-500"
             >
               Cancel
             </button>
@@ -627,26 +553,26 @@ export const CreationStudio: React.FC<CreationStudioProps> = ({
 
           {step < 4 ? (
             <button
-              onClick={() => setStep(s => (s + 1) as any)}
-              className="px-6 py-2.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-ivory-100 text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all shadow-sm"
+              onClick={handleNextStep}
+              className="px-6 py-2.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-ivory-100 text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-gold-500"
             >
               <span>Continue</span>
-              <ArrowRight className="w-4 h-4 text-gold-400" />
+              <ArrowRight className="w-4 h-4 text-gold-400" aria-hidden="true" />
             </button>
           ) : (
             <button
               onClick={handleFinalize}
               disabled={isGenerating}
-              className="px-8 py-3 rounded-xl bg-gold-500 hover:bg-gold-600 text-forest-950 font-bold text-sm flex items-center space-x-2 transition-all shadow-md disabled:opacity-50"
+              className="px-8 py-3 rounded-xl bg-gold-500 hover:bg-gold-600 text-forest-950 font-bold text-sm flex items-center space-x-2 transition-all shadow-md disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gold-500"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-forest-950" />
+                  <Loader2 className="w-4 h-4 animate-spin text-forest-950" aria-hidden="true" />
                   <span>Synthesizing Plan...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 text-forest-950" />
+                  <Sparkles className="w-4 h-4 text-forest-950" aria-hidden="true" />
                   <span>Generate Complete Plan</span>
                 </>
               )}

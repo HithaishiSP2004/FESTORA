@@ -4,7 +4,12 @@ import { TimelineEngine } from '../engine/timelineEngine';
 import { ChangeDiffEngine } from '../engine/changeDiffEngine';
 import { EventStorage } from '../engine/eventStorage';
 import { INDIAN_WEDDING_PRESET } from '../engine/culturalTemplates';
-import { ConceptOutputSchema, AdaptOutputSchema } from '../server/geminiApiHandler';
+import { 
+  ConceptOutputSchema, 
+  AdaptOutputSchema,
+  GenerateConceptRequestSchema,
+  AdaptPlanRequestSchema
+} from '../server/geminiApiHandler';
 import { EventPlan } from '../types/event';
 import { AiService } from '../services/aiService';
 
@@ -344,6 +349,72 @@ describe('FESTORA Core Architecture Test Suite', () => {
     const readinessScore = Math.min(100, milestoneProgress + vendorProgress);
     expect(readinessScore).toBeGreaterThan(0);
     expect(vendorProgress).toBeGreaterThan(0);
+  });
+
+  // TEST 14: Guest headcount reduction (downsizing scenario)
+  it('14. Downsizing guest headcount scales catering expenditure down while reconciling total budget', () => {
+    const basePlan = JSON.parse(JSON.stringify(INDIAN_WEDDING_PRESET)) as EventPlan;
+    const initialCatering = basePlan.budgetCategories.find(c => c.category === 'catering')!.allocatedAmount;
+
+    // Scale from 200 down to 120 guests (-40%)
+    const { categories: adapted } = BudgetEngine.adaptBudget(
+      basePlan.budgetCategories,
+      basePlan.totalBudget,
+      120,
+      200
+    );
+
+    const updatedCatering = adapted.find(c => c.category === 'catering')!.allocatedAmount;
+    expect(updatedCatering).toBeLessThan(initialCatering);
+
+    // Sum must remain perfectly reconciled to totalBudget
+    const sum = adapted.reduce((s, c) => s + c.allocatedAmount, 0);
+    expect(sum).toBe(basePlan.totalBudget);
+
+    // Statutory 5% buffer must still be preserved
+    const bufferCat = adapted.find(c => c.category === 'buffer')!;
+    expect(bufferCat.allocatedAmount).toBe(Math.round(basePlan.totalBudget * 0.05));
+  });
+
+  // TEST 15: API input validation rejects malformed and out-of-boundary payloads
+  it('15. Strict Zod schemas reject invalid, empty, or negative payloads', () => {
+    // A: Negative budget is rejected
+    const invalidBudgetResult = GenerateConceptRequestSchema.safeParse({
+      occasion: 'wedding',
+      city: 'Delhi',
+      totalBudget: -50000,
+      guestCount: 150,
+      priorities: { catering: 'high' }
+    });
+    expect(invalidBudgetResult.success).toBe(false);
+
+    // B: Missing required occasion is rejected
+    const missingOccasionResult = GenerateConceptRequestSchema.safeParse({
+      city: 'Delhi',
+      totalBudget: 500000,
+      guestCount: 150,
+      priorities: { catering: 'high' }
+    });
+    expect(missingOccasionResult.success).toBe(false);
+
+    // C: Malformed adaptation payload with invalid category types
+    const malformedAdaptResult = AdaptPlanRequestSchema.safeParse({
+      changePrompt: 'Adjust budget',
+      previousPlan: {
+        title: 'Wedding',
+        occasion: 'wedding',
+        totalBudget: 800000,
+        guestCount: 200,
+        city: 'Delhi',
+        priorities: {},
+        budgetCategories: [{ id: 'cat-1', category: 'catering' }] // Missing required schema fields
+      },
+      proposedChanges: {
+        newBudget: 750000,
+        newGuestCount: 220
+      }
+    });
+    expect(malformedAdaptResult.success).toBe(false);
   });
 
 });

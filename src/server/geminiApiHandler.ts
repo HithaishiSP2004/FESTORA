@@ -61,16 +61,30 @@ function checkRateLimit(ip: string): boolean {
 }
 
 // Request validation schemas
-const GenerateConceptRequestSchema = z.object({
-  occasion: z.string(),
+export const GenerateConceptRequestSchema = z.object({
+  occasion: z.string().min(1),
   subType: z.string().optional(),
-  city: z.string(),
+  city: z.string().min(1),
   totalBudget: z.number().positive(),
   guestCount: z.number().positive(),
   priorities: z.record(z.string()),
 });
 
-const AdaptPlanRequestSchema = z.object({
+export const BudgetCategorySchema = z.object({
+  id: z.string(),
+  category: z.string(),
+  name: z.string(),
+  allocatedAmount: z.number(),
+  targetPercentage: z.number(),
+  isPriority: z.boolean(),
+  isFlexible: z.boolean(),
+  isLocked: z.boolean().optional(),
+  compromiseNote: z.string().optional(),
+  committedAmount: z.number().optional(),
+  notes: z.string().optional(),
+});
+
+export const AdaptPlanRequestSchema = z.object({
   changePrompt: z.string(),
   previousPlan: z.object({
     title: z.string(),
@@ -79,7 +93,7 @@ const AdaptPlanRequestSchema = z.object({
     guestCount: z.number(),
     city: z.string(),
     priorities: z.record(z.string()),
-    budgetCategories: z.array(z.any()),
+    budgetCategories: z.array(BudgetCategorySchema),
   }),
   proposedChanges: z.object({
     newBudget: z.number(),
@@ -109,6 +123,15 @@ export const AdaptOutputSchema = z.object({
   decorOptimizations: z.string(),
 });
 
+interface ServerlessRequest extends IncomingMessage {
+  body?: unknown;
+}
+
+interface ServerlessResponse extends ServerResponse {
+  status?: (code: number) => { json: (data: unknown) => void };
+  json?: (data: unknown) => void;
+}
+
 function getClientIp(req: IncomingMessage): string {
   const forwarded = req.headers['x-forwarded-for'];
   if (typeof forwarded === 'string') {
@@ -117,23 +140,35 @@ function getClientIp(req: IncomingMessage): string {
   return req.socket.remoteAddress || '127.0.0.1';
 }
 
-function parseJsonBody(req: IncomingMessage): Promise<any> {
+function parseJsonBody(req: IncomingMessage): Promise<unknown> {
+  const serverlessReq = req as ServerlessRequest;
   // If running in Vercel Serverless environment where req.body is pre-parsed
-  if ((req as any).body) {
-    if (typeof (req as any).body === 'string') {
+  if (serverlessReq.body) {
+    if (typeof serverlessReq.body === 'string') {
       try {
-        return Promise.resolve(JSON.parse((req as any).body));
+        return Promise.resolve(JSON.parse(serverlessReq.body));
       } catch {
         return Promise.resolve({});
       }
     }
-    return Promise.resolve((req as any).body);
+    return Promise.resolve(serverlessReq.body);
   }
 
   // Otherwise, stream-parse in standard Node / Vite dev server environment
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', chunk => { data += chunk; });
+    const MAX_PAYLOAD_BYTES = 1024 * 1024; // 1MB payload ceiling (DOS security guard)
+    let currentBytes = 0;
+
+    req.on('data', chunk => {
+      currentBytes += chunk.length;
+      if (currentBytes > MAX_PAYLOAD_BYTES) {
+        req.destroy(new Error('Payload Too Large: request body exceeds 1MB limit'));
+        return;
+      }
+      data += chunk;
+    });
+
     req.on('end', () => {
       try {
         resolve(data ? JSON.parse(data) : {});
@@ -141,15 +176,20 @@ function parseJsonBody(req: IncomingMessage): Promise<any> {
         reject(e);
       }
     });
+
     req.on('error', reject);
   });
 }
 
-function sendJson(res: ServerResponse, statusCode: number, data: any) {
+function sendJson(res: ServerResponse, statusCode: number, data: unknown) {
+  const serverlessRes = res as ServerlessResponse;
   // Support both Vercel Serverless response helper and standard Node.js ServerResponse
-  if (typeof (res as any).status === 'function' && typeof (res as any).json === 'function') {
-    (res as any).status(statusCode).json(data);
-    return;
+  if (typeof serverlessRes.status === 'function') {
+    const chain = serverlessRes.status(statusCode);
+    if (chain && typeof chain.json === 'function') {
+      chain.json(data);
+      return;
+    }
   }
 
   res.writeHead(statusCode, {
@@ -170,7 +210,7 @@ async function generateWithCascade(
   prompt: string,
   timeoutMs: number = 6000
 ): Promise<{ text: string; modelUsed: string }> {
-  let lastError: any = null;
+  let lastError: unknown = null;
 
   for (const model of MODEL_CASCADE) {
     try {
@@ -194,13 +234,14 @@ async function generateWithCascade(
         console.log(`[Gemini Cascade] Succeeded with model: ${model}`);
         return { text, modelUsed: model };
       }
-    } catch (err: any) {
-      console.warn(`[Gemini Cascade] Model ${model} failed (${err?.message}). Cascading to next fallback...`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[Gemini Cascade] Model ${model} failed (${msg}). Cascading to next fallback...`);
       lastError = err;
     }
   }
 
-  throw lastError || new Error('All cascade models failed');
+  throw (lastError instanceof Error ? lastError : new Error('All cascade models failed'));
 }
 
 /**
@@ -349,8 +390,9 @@ Respond ONLY with a JSON object matching this schema:
     const validated = ConceptOutputSchema.parse(cleanJson);
 
     sendJson(res, 200, { concept: validated, source: 'gemini', modelUsed });
-  } catch (error: any) {
-    console.error('Gemini generate error, engaging cultural template fallback:', error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown generation error';
+    console.error('Gemini generate error, engaging cultural template fallback:', errorMsg);
     const fallback = getFallbackConcept({
       occasion: 'wedding',
       city: 'India',
@@ -358,7 +400,13 @@ Respond ONLY with a JSON object matching this schema:
       guestCount: 200,
       priorities: {},
     });
-    sendJson(res, 200, { concept: fallback, source: 'error_fallback', warning: error?.message, modelUsed: 'offline_cultural_template' });
+    // Sanitize user-facing message to prevent leaking internal stack traces or API details
+    sendJson(res, 200, {
+      concept: fallback,
+      source: 'error_fallback',
+      warning: 'AI generation temporarily unavailable; resilient cultural template engaged.',
+      modelUsed: 'offline_cultural_template'
+    });
   }
 }
 
@@ -430,8 +478,9 @@ Respond ONLY with a JSON object matching this schema:
     const validated = AdaptOutputSchema.parse(cleanJson);
 
     sendJson(res, 200, { adaptation: validated, source: 'gemini', modelUsed });
-  } catch (error: any) {
-    console.error('Gemini adapt error, engaging fallback:', error);
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown adaptation error';
+    console.error('Gemini adapt error, engaging fallback:', errorMsg);
     const fallback = getFallbackAdaptation({
       changePrompt: 'Adjust parameters',
       previousPlan: {
@@ -448,6 +497,12 @@ Respond ONLY with a JSON object matching this schema:
         newGuestCount: 250,
       }
     }, 50, -100000);
-    sendJson(res, 200, { adaptation: fallback, source: 'error_fallback', warning: error?.message, modelUsed: 'offline_cultural_template' });
+    // Sanitize user-facing message to prevent leaking internal stack traces or API details
+    sendJson(res, 200, {
+      adaptation: fallback,
+      source: 'error_fallback',
+      warning: 'AI adaptation temporarily unavailable; resilient trade-off fallback engaged.',
+      modelUsed: 'offline_cultural_template'
+    });
   }
 }

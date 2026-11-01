@@ -1,4 +1,4 @@
-import { EventThemeConcept, EventPlan } from '../types/event';
+import { EventThemeConcept, EventPlan, PrioritySettings } from '../types/event';
 
 export class AiService {
   /**
@@ -10,7 +10,7 @@ export class AiService {
     city: string;
     totalBudget: number;
     guestCount: number;
-    priorities: Record<string, string>;
+    priorities: PrioritySettings | Record<string, string>;
   }): Promise<{ concept: EventThemeConcept; source: string }> {
     try {
       const controller = new AbortController();
